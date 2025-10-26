@@ -1,4 +1,4 @@
-console.log("SkySaver frontend connected successfully!");
+console.log("Skyvela frontend connected successfully!");
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('flightForm');
