@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Flight Results{% endblock %}
+
+{% block content %}
+<section class="results-page">
+    <h2>Available Flights</h2>
+
+    <div class="filters">
+        <label>Sort by:</label>
+        <select id="sort-options">
+            <option value="price">Lowest Price</option>
+            <option value="duration">Shortest Duration</option>
+            <option value="departure">Earliest Departure</option>
+        </select>
+    </div>
+
+    <div id="flights-container">
+        <!-- Example static flights (will later be populated by backend or JS) -->
+        <div class="flight-card">
+            <div class="flight-header">
+                <h3>Delta Airlines</h3>
+                <p class="price">$320</p>
+            </div>
+            <p>JFK → LAX</p>
+            <p>Departure: 10:30 AM | Arrival: 1:45 PM</p>
+            <p>Duration: 6h 15m</p>
+            <button class="select-btn">Select Flight</button>
+        </div>
+
+        <div class="flight-card">
+            <div class="flight-header">
+                <h3>American Airlines</h3>
+                <p class="price">$298</p>
+            </div>
+            <p>JFK → LAX</p>
+            <p>Departure: 11:20 AM | Arrival: 2:30 PM</p>
+            <p>Duration: 6h 10m</p>
+            <button class="select-btn">Select Flight</button>
+        </div>
+
+        <!-- Placeholder message (shown if no flights yet) -->
+        <p id="no-flights" style="display: none;">No flights found for this route.</p>
+    </div>
+</section>
+{% endblock %}
