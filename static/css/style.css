@@ -1,14 +1,20 @@
+/* ===== Global ===== */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    background: #f4f6fa;
-    color: #333;
+    background: #121212; /* dark but soft */
+    color: hsl(0, 0%, 88%);      /* light gray text */
 }
 
+/* ===== Header / Navbar ===== */
 header {
-    background: #004080;
-    color: white;
+    background: #1f1f1f;  /* darker navbar */
+    color: #fff;
     padding: 1rem 2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .navbar {
@@ -17,45 +23,85 @@ header {
     align-items: center;
 }
 
+.logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #00c8ff; /* Sky-blue accent for branding */
+    letter-spacing: 1px;
+}
+
 .nav-links {
     list-style: none;
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .nav-links a {
-    color: white;
+    color: #e0e0e0;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    transition: 0.3s;
 }
 
+.nav-links a:hover {
+    background-color: #00c8ff;
+    color: #121212;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    background: #00c8ff;
+    color: #121212;
+    padding: 0.8rem 1.6rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    background: #00a3cc;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* ===== Hero Section ===== */
 .hero {
     text-align: center;
-    margin: 5rem auto;
+    margin: 6rem auto;
+    background: url('../img/plane-dark.jpg') center/cover no-repeat;
+    padding: 6rem 2rem;
+    border-radius: 12px;
 }
 
-.btn {
-    background: #007bff;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    text-decoration: none;
+.hero h1 {
+    font-size: 3rem;
+    color: #00c8ff;
 }
 
-/* ==== Results Page ==== */
+.hero p {
+    font-size: 1.3rem;
+    margin: 1rem 0 2rem 0;
+    color: #cccccc;
+}
+
+/* ===== Results Page / Forms ===== */
 .results-page {
     width: 80%;
     margin: 2rem auto;
-    background: white;
+    background: #1f1f1f;
     padding: 2rem;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 15px rgba(0,0,0,0.5);
 }
 
 .results-page h2 {
     text-align: center;
     margin-bottom: 1.5rem;
+    color: #00c8ff;
 }
 
 .filters {
@@ -69,16 +115,17 @@ header {
 }
 
 .flight-card {
-    border: 1px solid #ddd;
+    border: 1px solid #333;
     border-radius: 10px;
     padding: 1rem 1.5rem;
     margin-bottom: 1rem;
-    background: #f9f9f9;
-    transition: 0.3s;
+    background: #1f1f1f; /* slightly darker for consistency */
+    transition: 0.3s, transform 0.3s;
 }
 
 .flight-card:hover {
-    background: #eef4ff;
+    background: #2a2a2a;
+    transform: translateY(-2px);
 }
 
 .flight-header {
@@ -89,20 +136,71 @@ header {
 
 .price {
     font-weight: bold;
-    color: #007bff;
+    color: #00c8ff;
 }
 
 .select-btn {
     display: inline-block;
     margin-top: 0.5rem;
-    background: #004080;
-    color: white;
+    background: #00c8ff;
+    color: #121212;
     border: none;
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
     cursor: pointer;
+    font-weight: 600;
 }
 
 .select-btn:hover {
-    background: #0066cc;
+    background: #00a3cc;
+}
+
+/* ===== Footer ===== */
+footer {
+    text-align: center;
+    padding: 1.5rem 0;
+    margin-top: 4rem;
+    background: #1f1f1f;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+/* ===== Search Form ===== */
+.search-form {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.search-form input,
+.search-form select,
+.search-form button {
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+}
+
+.search-form input,
+.search-form select {
+    background: #2a2a2a;
+    color: #e0e0e0;
+}
+
+.search-form input::placeholder {
+    color: #aaa;
+}
+
+.search-form button {
+    background: #00c8ff;
+    color: #121212;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.search-form button:hover {
+    background: #00a3cc;
 }

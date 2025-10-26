@@ -1,20 +1,40 @@
-{% extends 'base.html' %}
-{% block title %}Search Flights{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-<section class="search">
-    <h2>Search for Flights</h2>
-    <form id="flightForm">
-        <label>From:</label>
-        <input type="text" id="origin" placeholder="e.g. JFK" required>
+<section class="results-page">
+    <h2>Search Flights</h2>
 
-        <label>To:</label>
-        <input type="text" id="destination" placeholder="e.g. LAX" required>
-
-        <label>Departure Date:</label>
+    <!-- Flight Search Form -->
+    <form id="flightForm" class="search-form">
+        <input type="text" id="origin" placeholder="Origin" required>
+        <input type="text" id="destination" placeholder="Destination" required>
         <input type="date" id="date" required>
-
-        <button type="submit">Search</button>
+        <button type="submit" class="btn">Search</button>
     </form>
-    <div id="results"></div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <label for="sort-options">Sort by:</label>
+        <select id="sort-options">
+            <option value="price">Price</option>
+            <option value="duration">Duration</option>
+            <option value="airline">Airline</option>
+        </select>
+    </div>
+
+    <!-- Flight Results -->
+    <div id="flights-container">
+        <div id="no-flights" style="display:none; text-align:center; margin-top:2rem;">
+            No flights found for your search.
+        </div>
+        <!-- Example Flight Card -->
+        <div class="flight-card">
+            <div class="flight-header">
+                <div>New York → London</div>
+                <div class="price">$499</div>
+            </div>
+            <div>Duration: 7h 30m | Airline: SkyFly</div>
+            <button class="select-btn">Select</button>
+        </div>
+    </div>
 </section>
 {% endblock %}
