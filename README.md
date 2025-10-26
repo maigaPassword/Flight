@@ -1,8 +1,42 @@
-"# Group5Project" 
+"# Group5Project"
 
-🛫 SkySaver: Flight Deal Finder
+Project name (Skyvela)
 
-SkySaver is a Flask-based web app that helps travelers search and compare flight deals using live data from the Amadeus API. Built for the CSCI 414/514 Group Project.
+Description: Flight search and ticket comparison website
+
+Tech stack: Flask, Amadeus API, HTML/CSS/JS
+
+Setup instructions:
+
+# Skyvela
+
+Skyvela is a flight search and ticket comparison web application built with Flask, HTML/CSS/JS, and the Amadeus API.
+
+## Setup
+
+1. Clone the repo:
+git clone https://github.com/mokorm2/Group5Project.git
+
+cpp
+Copy code
+2. Create virtual environment and activate:
+python -m venv venvgroup5
+.\venvgroup5\Scripts\activate
+
+markdown
+Copy code
+3. Install dependencies:
+pip install -r requirements.txt
+
+markdown
+Copy code
+4. Run the app:
+python app.py
+
+
+🛫 Skyvela: Flight Deal Finder
+
+Skyvela is a Flask-based web app that helps travelers search and compare flight deals using live data from the Amadeus API. Built for the CSCI 414/514 Group Project.
 
 🚀 Features
 
