@@ -1,4 +1,18 @@
 from  amadeus import amadeus 
+from flask import Flask, render_template
+import os
+
+# Create Flask app
+app = Flask(__name__)
+
+# Home route
+@app.route('/')
+def home():
+    return render_template('base.html')
+
+if __name__ == '__main__':
+    # Run the app in debug mode for easy testing
+    app.run(debug=True)
 
 @app.route('/')
 def home():
