@@ -24,7 +24,7 @@ except Exception as e:
     AIRLINES = {}
 
 # --- Home Page ---
-@app.route('/result')
+@app.route('/')
 def home():
     return render_template('base.html')
 @app.route('/result')
