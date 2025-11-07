@@ -4,12 +4,13 @@
     <h2>Search Flights</h2>
 
     <!-- Flight Search Form -->
-    <form id="flightForm" class="search-form">
-        <input type="text" id="origin" placeholder="Origin" required>
-        <input type="text" id="destination" placeholder="Destination" required>
-        <input type="date" id="date" required>
+   <form id="flightForm" class="search-form" method="POST" action="/search">
+        <input type="text" name="origin" id="origin" placeholder="Origin" required>
+        <input type="text" name="destination" id="destination" placeholder="Destination" required>
+        <input type="date" name="date" id="date" required>
         <button type="submit" class="btn">Search</button>
-    </form>
+   </form>
+
 
     <!-- Filters -->
     <div class="filters">
@@ -22,19 +23,27 @@
     </div>
 
     <!-- Flight Results -->
-    <div id="flights-container">
-        <div id="no-flights" style="display:none; text-align:center; margin-top:2rem;">
-            No flights found for your search.
+   {% for flight in flights %}
+    <div class="flight-card">
+        <div class="flight-header">
+            {% if flight.airline_logo %}
+                <img src="{{ flight.airline_logo }}" alt="{{ flight.airline_name }}" class="airline-logo">
+            {% endif %}
+            <h3>{{ flight.airline_name }}</h3>
+            <p class="price">${{ flight.price }}</p>
         </div>
-        <!-- Example Flight Card -->
-        <div class="flight-card">
-            <div class="flight-header">
-                <div>New York → London</div>
-                <div class="price">$499</div>
-            </div>
-            <div>Duration: 7h 30m | Airline: SkyFly</div>
-            <button class="select-btn">Select</button>
-        </div>
+        <p>{{ flight.origin }} → {{ flight.destination }}</p>
+        <p>
+            Departure: {{ flight.departure }} | 
+            Arrival: {{ flight.arrival }}
+        </p>
+        <p>Duration: {{ flight.duration }}</p>
+        <button class="select-btn">Select Flight</button>
     </div>
+    {% endfor %}
+
+</div>
+
+
 </section>
 {% endblock %}

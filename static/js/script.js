@@ -1,19 +1,19 @@
 console.log("Skyvela frontend connected successfully!");
 
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('flightForm');
-    if (form) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const origin = document.getElementById('origin').value;
-            const destination = document.getElementById('destination').value;
-            const date = document.getElementById('date').value;
+// document.addEventListener('DOMContentLoaded', () => {
+//     const form = document.getElementById('flightForm');
+//     if (form) {
+//         form.addEventListener('submit', (e) => {
+//             e.preventDefault();
+//             const origin = document.getElementById('origin').value;
+//             const destination = document.getElementById('destination').value;
+//             const date = document.getElementById('date').value;
 
-            document.getElementById('results').innerHTML =
-                `<p>Searching flights from <strong>${origin}</strong> to <strong>${destination}</strong> on <strong>${date}</strong>...</p>`;
-        });
-    }
-});
+//             document.getElementById('results').innerHTML =
+//                 `<p>Searching flights from <strong>${origin}</strong> to <strong>${destination}</strong> on <strong>${date}</strong>...</p>`;
+//         });
+//     }
+// });
 
 document.addEventListener('DOMContentLoaded', () => {
     const sortSelect = document.getElementById('sort-options');
