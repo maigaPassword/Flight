@@ -33,6 +33,7 @@ def result():
 
 
 # --- Search Flights ---
+# --- Search Flights ---
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     flights = []
@@ -55,18 +56,41 @@ def search():
                 # Build a clean flight list
                 for flight in response.data:
                     airline_code = flight["validatingAirlineCodes"][0]
-                    airline_info = AIRLINES.get(
-                        airline_code, {"name": airline_code, "logo": ""}
-                    )
+                    airline_info = AIRLINES.get(airline_code, {"name": airline_code, "logo": ""})
+
+                    segments = flight["itineraries"][0]["segments"]
+                    stops = len(segments) - 1
+                    stops_text = "Non-stop" if stops == 0 else f"{stops} stop{'s' if stops > 1 else ''}"
+
+                    # Baggage info (if available)
+                    try:
+                        baggage = flight["travelerPricings"][0]["fareDetailsBySegment"][0]["includedCheckedBags"]["weight"]
+                    except:
+                        baggage = "N/A"
+
+                    # Build segment list for popup
+                    segment_list = []
+                    for seg in segments:
+                        segment_list.append({
+                            "origin": seg["departure"]["iataCode"],
+                            "destination": seg["arrival"]["iataCode"],
+                            "departure": seg["departure"]["at"],
+                            "arrival": seg["arrival"]["at"],
+                            "duration": seg["duration"][2:].replace("H", "h ").replace("M", "m")
+                        })
+
                     flights.append({
                         "airline_name": airline_info["name"],
                         "airline_logo": airline_info["logo"],
                         "price": flight["price"]["total"],
-                        "origin": flight["itineraries"][0]["segments"][0]["departure"]["iataCode"],
-                        "destination": flight["itineraries"][0]["segments"][-1]["arrival"]["iataCode"],
-                        "departure": flight["itineraries"][0]["segments"][0]["departure"]["at"],
-                        "arrival": flight["itineraries"][0]["segments"][-1]["arrival"]["at"],
-                        "duration": flight["itineraries"][0]["duration"][2:].replace("H", "h ").replace("M", "m")
+                        "origin": segments[0]["departure"]["iataCode"],
+                        "destination": segments[-1]["arrival"]["iataCode"],
+                        "departure": segments[0]["departure"]["at"],
+                        "arrival": segments[-1]["arrival"]["at"],
+                        "duration": flight["itineraries"][0]["duration"][2:].replace("H", "h ").replace("M", "m"),
+                        "baggage": baggage,
+                        "stops_text": stops_text,
+                        "segments": segment_list
                     })
 
             except ResponseError as e:

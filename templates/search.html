@@ -11,7 +11,6 @@
         <button type="submit" class="btn">Search</button>
    </form>
 
-
     <!-- Filters -->
     <div class="filters">
         <label for="sort-options">Sort by:</label>
@@ -23,27 +22,46 @@
     </div>
 
     <!-- Flight Results -->
-   {% for flight in flights %}
-    <div class="flight-card">
-        <div class="flight-header">
-            {% if flight.airline_logo %}
-                <img src="{{ flight.airline_logo }}" alt="{{ flight.airline_name }}" class="airline-logo">
-            {% endif %}
-            <h3>{{ flight.airline_name }}</h3>
-            <p class="price">${{ flight.price }}</p>
-        </div>
-        <p>{{ flight.origin }} → {{ flight.destination }}</p>
-        <p>
-            Departure: {{ flight.departure }} | 
-            Arrival: {{ flight.arrival }}
-        </p>
-        <p>Duration: {{ flight.duration }}</p>
-        <button class="select-btn">Select Flight</button>
-    </div>
-    {% endfor %}
+    {% for flight in flights %}
+    <div class="flight-card" 
+     data-airline="{{ flight.airline_name }}"
+     data-logo="{{ flight.airline_logo }}"
+     data-origin="{{ flight.origin }}"
+     data-destination="{{ flight.destination }}"
+     data-departure="{{ flight.departure }}"
+     data-arrival="{{ flight.arrival }}"
+     data-duration="{{ flight.duration }}"
+     data-price="{{ flight.price }}"
+     data-baggage="{{ flight.baggage }}"
+     data-stops="{{ flight.stops_text }}"
+     data-segments='{{ flight.segments | tojson | safe }}'>
 
+    <div class="flight-header">
+        {% if flight.airline_logo %}
+            <img src="{{ flight.airline_logo }}" alt="{{ flight.airline_name }}" class="airline-logo">
+        {% endif %}
+        <h3>{{ flight.airline_name }}</h3>
+        <p class="price">${{ flight.price }}</p>
+    </div>
+
+    <p>{{ flight.origin }} → {{ flight.destination }}</p>
+    <p class="stops"><strong>Stops:</strong> {{ flight.stops_text }}</p>
+
+    <!-- Date & Time will be injected by JS above buttons -->
+
+    <button class="select-btn">Select Flight</button>
+    <button class="show-more-btn select-btn" data-flight='{{ flight | tojson | safe }}'>Show More</button>
 </div>
 
+    {% endfor %}
+</section>
 
+<!-- ✈️ Popup Modal -->
+<div id="flightModal" class="flight-modal">
+    <div class="flight-modal-content">
+        <span class="flight-close-btn">&times;</span>
+        <div id="flightModalBody"></div>
+    </div>
+</div>
 </section>
 {% endblock %}

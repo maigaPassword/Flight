@@ -204,3 +204,76 @@ footer {
 .search-form button:hover {
     background: #00a3cc;
 }
+
+
+/* ===== FLIGHT MODAL (isolated styles) ===== */
+.flight-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  background-color: rgba(26, 25, 25, 0.87);
+  justify-content: center;
+  align-items: center;
+}
+
+.flight-modal-content {
+  background-color: #000000;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: flightFadeIn 0.3s ease-in-out;
+}
+
+.flight-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 22px;
+  cursor: pointer;
+  color: #333;
+}
+
+.flight-close-btn:hover {
+  color: #000;
+}
+.flight-card p {
+    margin: 0.2rem 0;
+}
+
+.flight-card .stops {
+    font-weight: bold;
+    color: #555;
+}
+
+.flight-card .flight-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.flight-popup-details {
+    font-size: 0.9rem; /* smaller font for popup */
+}
+
+.segment {
+    margin-bottom: 0.5rem;
+}
+
+.segment h4 {
+    margin: 0.2rem 0;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.segment p {
+    margin: 0.1rem 0;
+}
+
+@keyframes flightFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
