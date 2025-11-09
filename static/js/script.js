@@ -1,7 +1,7 @@
 console.log("Skyvela frontend connected successfully!");
 
 
-// ========================DOMContentLoaded Wrapper======================
+// ========================DOMContentLoaded Wrapper===========================
 
 document.addEventListener("DOMContentLoaded", () => {
     const sortSelect = document.getElementById("sort-options");
@@ -206,8 +206,6 @@ function setupAutocomplete(inputId, hiddenId) {
     input.addEventListener('input', () => {
         const val = input.value.toLowerCase();
         list.innerHTML = '';
-        hidden.value = '';
-
         if (!val) return;
 
         const matches = airports.filter(a =>

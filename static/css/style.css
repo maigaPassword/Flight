@@ -449,11 +449,19 @@ footer {
   font-weight: 600;
   color: #00c8ff;
 }
-/* ===== AUTOCOMPLETE ===== */
+/* ===== FARE OPTIONS CONTAINER ===== */
 .fare-options-container {
   display: flex;
-  gap: 20px; /* space between cabins */
-  flex-wrap: nowrap;
+  gap: 20px; 
+  flex-wrap: wrap; 
+}
+
+.cabin-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 250px;
+  min-width: 250px;
 }
 
 .fare-option {
@@ -493,29 +501,47 @@ footer {
   color: #aaa;
 }
 
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+  .fare-options-container {
+    flex-direction: column; 
+    gap: 15px;
+  }
+
+  .cabin-column {
+    width: 100%;
+    min-width: unset; 
+  }
+}
+
 .select-btn {
-  margin-top: auto;
-  background: #00c8ff;
-  color: black;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.25s;
+    display: inline-flex;          
+    align-items: center;          
+    justify-content: center;       
+    margin-top: auto;
+    background: #00c8ff;
+    color: black;
+    border: none;
+    padding: 12px 18px;           
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;               
+    line-height: 1;                
+    text-decoration: none;         
+    transition: background 0.25s, color 0.25s;
+    box-sizing: border-box;        
+    min-width: 120px;              
+    font-weight: bold;
 }
 
 .select-btn:hover {
-  background: #7899bc;
-  color: white;
+    background: #7899bc;
+    color: white;
 }
 
-.cabin-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 250px;
-}
+
+
 
 /* ===== AUTOCOMPLETE ===== */
 .autocomplete {
