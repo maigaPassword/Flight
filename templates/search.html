@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
 <style>
 /* Use the same big-screen form style as the Home page (glassmorphism) */
 /* Return date field - always visible but disabled for one-way */
@@ -395,9 +394,501 @@
     </div>
 </div>
 <script>
-    window.AIRPORTS = {{ AIRPORTS | tojson | safe }};
-    window.COUNTRY_NAMES = {{ COUNTRY_NAMES | tojson | safe }};
-    // Data injected; page logic loaded below
-    </script>
-<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+    console.log('🟢 SCRIPT TAG LOADED');
+    window.AIRPORTS = {{ AIRPORTS | default({}) | tojson | safe }};
+    window.COUNTRY_NAMES = {{ COUNTRY_NAMES | default({}) | tojson | safe }};
+    console.log('🟢 AIRPORTS injected:', Object.keys(window.AIRPORTS).length, 'airports');
+    
+    // ========================================
+    // AIRPORT AUTOCOMPLETE - Uses window.AIRPORTS
+    // ========================================
+    (function() {
+        console.log('🔵 AUTOCOMPLETE FUNCTION STARTED');
+        
+        // Use the airports already loaded from Flask
+        const airportsData = window.AIRPORTS || {};
+        const airportsList = Object.keys(airportsData).map(iata => ({
+            iata: iata,
+            city: airportsData[iata].city || '',
+            name: airportsData[iata].name || '',
+            country: airportsData[iata].country || '',
+        }));
+        
+        console.log('✈️ Loaded', airportsList.length, 'airports from window.AIRPORTS');
+                
+    // Setup autocomplete for inputs (single form moved to top)
+    setupAutocomplete('origin');
+    setupAutocomplete('destination');
+        
+        function setupAutocomplete(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) {
+                console.log('❌ Input not found:', inputId);
+                return;
+            }
+            
+            console.log('✅ Setting up autocomplete for:', inputId);
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'airport-dropdown';
+            dropdown.style.cssText = `
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: #ffffff;
+                border: 2px solid #48cae4;
+                border-radius: 12px;
+                margin-top: 4px;
+                max-height: 350px;
+                overflow-y: auto;
+                display: none;
+                z-index: 999999;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(72, 202, 228, 0.3);
+            `;
+            
+            input.parentElement.appendChild(dropdown);
+            
+            let debounceTimer;
+            
+            input.addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                clearTimeout(debounceTimer);
+                
+                if (keyword.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                
+                debounceTimer = setTimeout(() => {
+                    const matches = airportsList.filter(airport => 
+                        airport.iata.toLowerCase().includes(keyword) ||
+                        airport.city.toLowerCase().includes(keyword) ||
+                        airport.name.toLowerCase().includes(keyword)
+                    ).slice(0, 8);
+                    
+                    dropdown.innerHTML = '';
+                    
+                    if (matches.length === 0) {
+                        dropdown.innerHTML = `<div style="padding: 20px; text-align: center; color: #023e8a; font-weight: 500;">No airports found</div>`;
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+                    
+                    matches.forEach(airport => {
+                        const item = document.createElement('div');
+                        item.style.cssText = `
+                            padding: 14px 18px;
+                            cursor: pointer;
+                            border-bottom: 1px solid rgba(72, 202, 228, 0.3);
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            transition: all 0.3s ease;
+                            background: transparent;
+                        `;
+                        
+                        const location = airport.city + (airport.state ? `, ${airport.state}` : '') + (airport.country ? `, ${airport.country}` : '');
+                        
+                        item.innerHTML = `
+                            <div style="
+                                background: linear-gradient(135deg, #0077b6, #00b4d8);
+                                border: 2px solid #48cae4;
+                                border-radius: 8px;
+                                padding: 8px 12px;
+                                font-weight: 700;
+                                color: #ffffff;
+                                min-width: 50px;
+                                text-align: center;
+                                font-size: 0.95rem;
+                                letter-spacing: 0.5px;
+                                box-shadow: 0 2px 8px rgba(72, 202, 228, 0.3);
+                            ">${airport.iata}</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="color: #03045e; font-weight: 600; font-size: 0.95rem; margin-bottom: 3px;">${location}</div>
+                                <div style="color: #023e8a; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8;">${airport.name}</div>
+                            </div>
+                        `;
+                        
+                        item.onmouseenter = () => {
+                            item.style.background = 'linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 180, 216, 0.1))';
+                            item.style.borderLeft = '4px solid #0077b6';
+                            item.style.paddingLeft = '14px';
+                        };
+                        item.onmouseleave = () => {
+                            item.style.background = 'transparent';
+                            item.style.borderLeft = 'none';
+                            item.style.paddingLeft = '18px';
+                        };
+                        
+                        item.onclick = () => {
+                            // Format: "City, Country - Airport Name (CODE)"
+                            const displayText = `${airport.city}${airport.country ? ', ' + airport.country : ''} - ${airport.name} (${airport.iata})`;
+                            input.value = displayText;
+                            
+                            // Also set the hidden code field (supports sidebar and top form)
+                            const codeField = document.getElementById(inputId + '_code');
+                            if (codeField) {
+                                codeField.value = airport.iata;
+                            }
+                            
+                            dropdown.style.display = 'none';
+                        };
+                        
+                        dropdown.appendChild(item);
+                    });
+                    
+                    dropdown.style.display = 'block';
+                }, 250);
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+    })();
+    
+    // Initialize return-date-wrapper visibility based on selected radio
+    (function(){
+        const wrap = document.getElementById('return-date-wrapper');
+        const ret = document.getElementById('return_date');
+        const isRound = document.getElementById('trip_type_roundtrip')?.checked;
+        if (isRound) { wrap.classList.add('visible'); ret.required = true; }
+        else { wrap.classList.remove('visible'); ret.required = false; }
+    })();
+
+    // Note: Swap button removed to match Home form style exactly on big screens
+    
+    const modifyBtn = document.getElementById('modifySearchBtn');
+    const modifyPanel = document.getElementById('modifySearchPanel');
+    modifyBtn?.addEventListener('click', () => { const hidden = modifyPanel.hasAttribute('hidden'); hidden ? modifyPanel.removeAttribute('hidden') : modifyPanel.setAttribute('hidden',''); modifyBtn.classList.toggle('open'); });
+    const timerEl = document.getElementById('searchTimer'); let remaining = 15*60; setInterval(()=>{ if(remaining<0) return; remaining--; const m=String(Math.floor(remaining/60)).padStart(2,'0'); const s=String(remaining%60).padStart(2,'0'); timerEl.textContent=`${m}:${s}`; },1000);
+    const cards=[...document.querySelectorAll('.flight-card')]; const prices=cards.map(c=>Number(c.dataset.price)); const priceSlider=document.getElementById('priceSlider'); const priceMinEl=document.getElementById('priceMin'); const priceMaxEl=document.getElementById('priceMax'); if(prices.length){ const minP=Math.min(...prices); const maxP=Math.max(...prices); priceSlider.min=minP; priceSlider.max=maxP; priceSlider.value=maxP; priceMinEl.textContent=`$${minP.toFixed(0)}`; priceMaxEl.textContent=`$${maxP.toFixed(0)}`; }
+
+    // Stops dropdown control (dynamic: All, Direct, 1, 2, 3, ... based on data)
+    let selectedStops = 'all'; // 'all' or number 0/1/2/...
+    const stopsBtn = document.getElementById('stopsDropdownBtn');
+    const stopsMenu = document.getElementById('stopsDropdownMenu');
+
+    function parseStops(text){
+        const t = (text||'').toString().toLowerCase();
+        if(t.includes('non') && t.includes('stop')) return 0; // Non-stop
+        const m = t.match(/(\d+)/);
+        return m ? parseInt(m[1], 10) : null;
+    }
+    function formatStopsLabel(val){
+        if(val==='all') return 'All';
+        if(val===0) return 'Direct';
+        if(typeof val === 'number') return `${val} Stop${val>1?'s':''}`;
+        return 'All';
+    }
+    function setStopsFromDropdown(val){
+        selectedStops = val; // 'all' or number
+        if(stopsBtn){ stopsBtn.textContent = `Stops: ${formatStopsLabel(val)} ▾`; }
+        applyFilters();
+    }
+    function toggleStopsMenu(show){ if(!stopsMenu) return; if(show===undefined){ show = stopsMenu.hasAttribute('hidden'); } if(show){ stopsMenu.removeAttribute('hidden'); stopsBtn?.setAttribute('aria-expanded','true'); } else { stopsMenu.setAttribute('hidden',''); stopsBtn?.setAttribute('aria-expanded','false'); } }
+    stopsBtn?.addEventListener('click', ()=> toggleStopsMenu());
+    document.addEventListener('click', (e)=>{ if(stopsMenu && !stopsMenu.contains(e.target) && !stopsBtn.contains(e.target)){ toggleStopsMenu(false); } });
+
+    function buildStopsMenu(){
+        if(!stopsMenu) return;
+        stopsMenu.innerHTML = '';
+        const counts = Array.from(new Set(cards.map(c => parseStops(c.dataset.stops)).filter(n => n !== null))).sort((a,b)=>a-b);
+        // Always include All and Direct at top
+        const options = ['all', 0, ...counts.filter(n=> n>=1)];
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'stops-option';
+            btn.dataset.stops = String(opt);
+            btn.style.cssText = 'display:block; width:100%; text-align:left; padding:10px 12px; background:none; border:0; cursor:pointer;';
+            btn.textContent = formatStopsLabel(opt);
+            btn.addEventListener('click', ()=>{ setStopsFromDropdown(opt === 'all' ? 'all' : Number(opt)); toggleStopsMenu(false); });
+            stopsMenu.appendChild(btn);
+        });
+    }
+    buildStopsMenu();
+
+    function stopsMatches(selected, text){
+        if(selected==='all') return true;
+        const num = parseStops(text);
+        if(num === null) return true;
+        return num === selected;
+    }
+    function currentSelectedStops(){ return selectedStops; }
+    function applyFilters(){ const sel = currentSelectedStops(); const maxPrice=Number(priceSlider.value); cards.forEach(card=>{ const okStops= stopsMatches(sel, card.dataset.stops); const okPrice= Number(card.dataset.price)<=maxPrice; card.style.display= okStops && okPrice ? '' : 'none'; }); }
+    priceSlider.addEventListener('input',applyFilters);
+    document.querySelectorAll('.sort-btn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const order=btn.dataset.sort; const sorted=[...cards].sort((a,b)=> order==='asc'? a.dataset.price-b.dataset.price : b.dataset.price-a.dataset.price); const list=document.getElementById('flightsList'); sorted.forEach(c=>list.appendChild(c)); }));
+    document.addEventListener('click',e=>{ if(e.target.classList.contains('flight-close-btn')){ document.getElementById('flightModal').setAttribute('hidden',''); } });
+    // Details toggle
+    document.querySelectorAll('.details-toggle-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const panel = document.getElementById(btn.getAttribute('aria-controls'));
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            if(expanded){ panel.setAttribute('hidden',''); btn.setAttribute('aria-expanded','false'); }
+            else { panel.removeAttribute('hidden'); btn.setAttribute('aria-expanded','true'); }
+        });
+    });
+    
+    // Populate airport city names in segment details
+    document.querySelectorAll('.seg-city').forEach(el=>{
+        const code = el.dataset.code;
+        const airport = window.AIRPORTS[code];
+        if(airport){
+            const countryCode = airport.country;
+            const countryName = window.COUNTRY_NAMES[countryCode] || countryCode;
+            el.textContent = ` (${airport.city}${countryName ? ', ' + countryName : ''})`;
+        }
+    });
+    
+    // Format dates and times in segment details
+    document.querySelectorAll('.seg-dep, .seg-arr').forEach(el=>{
+        const timeEl = el.childNodes[el.childNodes.length - 1];
+        if(timeEl && timeEl.nodeType === Node.TEXT_NODE){
+            const dateStr = timeEl.textContent.trim();
+            if(dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)){
+                const date = new Date(dateStr);
+                const formatted = date.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                timeEl.textContent = ' ' + formatted;
+            }
+        }
+    });
+    
+    // Cabin Selection Modal Logic
+    const cabinModal = document.getElementById('cabinModal');
+    const cabinCloseBtn = document.querySelector('.cabin-close-btn');
+    const cabinOverlay = document.querySelector('.cabin-modal-overlay');
+    const cabinOptions = document.getElementById('cabinOptions');
+    
+    console.log('Search page - Cabin modal elements:', {
+        cabinModal,
+        cabinCloseBtn,
+        cabinOverlay,
+        cabinOptions
+    });
+    
+    // For roundtrip flights
+    const cabinOutboundForm = document.getElementById('cabinOutboundForm');
+    const selectedOutboundJson = document.getElementById('selectedOutboundJson');
+    const selectedCabinOut = document.getElementById('selectedCabinOut');
+    const formOrigin = document.getElementById('formOrigin');
+    const formDestination = document.getElementById('formDestination');
+    const formReturnDate = document.getElementById('formReturnDate');
+    
+    // For one-way flights
+    const cabinOnewayForm = document.getElementById('cabinOnewayForm');
+    const selectedOnewayJson = document.getElementById('selectedOnewayJson');
+    const selectedCabinOneway = document.getElementById('selectedCabinOneway');
+    
+    let isRoundtrip = false;
+    
+    function showCabinModal(flightData, isRound, origin, destination, returnDate) {
+        console.log('showCabinModal called', { flightData, isRound, origin, destination, returnDate });
+        
+        isRoundtrip = isRound;
+        const faresByCabin = flightData.fares_by_cabin || {};
+        
+        console.log('Fares by cabin:', faresByCabin);
+        
+        // Store flight data
+        if (isRoundtrip) {
+            selectedOutboundJson.value = JSON.stringify(flightData);
+            formOrigin.value = origin;
+            formDestination.value = destination;
+            formReturnDate.value = returnDate;
+        } else {
+            selectedOnewayJson.value = JSON.stringify(flightData);
+        }
+        
+        // Build cabin options
+        cabinOptions.innerHTML = '';
+        const cabinNames = {
+            'ECONOMY': 'Economy',
+            'PREMIUM_ECONOMY': 'Premium Economy',
+            'BUSINESS': 'Business',
+            'FIRST': 'First Class'
+        };
+        
+        const availableCabins = Object.keys(faresByCabin).sort((a, b) => {
+            const order = ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'];
+            return order.indexOf(a) - order.indexOf(b);
+        });
+        
+        console.log('Available cabins:', availableCabins);
+        
+        if (availableCabins.length === 0) {
+            cabinOptions.innerHTML = '<p class="no-cabins">No cabin options available for this flight.</p>';
+        } else {
+            availableCabins.forEach(cabin => {
+                const fares = faresByCabin[cabin];
+                if (fares && fares.length > 0) {
+                    const fare = fares[0];
+                    const price = fare.price;
+                    
+                    // Cabin details based on class
+                    const cabinDetails = {
+                        'ECONOMY': {
+                            name: 'Economy',
+                            subtitle: 'Standard / Basic',
+                            description: 'Lowest price, minimal amenities',
+                            icon: '💺',
+                            features: ['Standard seat', 'Carry-on included', 'Snacks & beverages', 'Standard boarding'],
+                            seatPitch: '31-32"',
+                            baggage: fare.includedCheckedBags?.quantity || 0,
+                            refundable: false
+                        },
+                        'PREMIUM_ECONOMY': {
+                            name: 'Premium Economy',
+                            subtitle: 'Enhanced Comfort',
+                            description: 'Extra legroom, priority boarding, better meals',
+                            icon: '🪑',
+                            features: ['Extra legroom', 'Priority boarding', 'Enhanced meals', 'More recline', 'Premium beverages'],
+                            seatPitch: '38-40"',
+                            baggage: fare.includedCheckedBags?.quantity || 1,
+                            refundable: false
+                        },
+                        'BUSINESS': {
+                            name: 'Business Class',
+                            subtitle: 'Executive',
+                            description: 'Lie-flat seats, lounge access, premium meals',
+                            icon: '✈️',
+                            features: ['Lie-flat seats', 'Lounge access', 'Premium dining', 'Priority check-in', 'Extra baggage'],
+                            seatPitch: '60-78"',
+                            baggage: fare.includedCheckedBags?.quantity || 2,
+                            refundable: true
+                        },
+                        'FIRST': {
+                            name: 'First Class',
+                            subtitle: 'Suites / Luxury',
+                            description: 'Top-tier luxury, private suites, fine dining',
+                            icon: '👑',
+                            features: ['Private suites', 'Fine dining', 'Premium service', 'Chauffeur service', 'Priority everything'],
+                            seatPitch: '80+"',
+                            baggage: fare.includedCheckedBags?.quantity || 3,
+                            refundable: true
+                        }
+                    };
+                    
+                    const details = cabinDetails[cabin] || cabinDetails['ECONOMY'];
+                    
+                    const cabinCard = document.createElement('div');
+                    cabinCard.className = 'cabin-option';
+                    cabinCard.innerHTML = `
+                        <div class="cabin-icon">${details.icon}</div>
+                        <div class="cabin-info">
+                            <div class="cabin-header">
+                                <div class="cabin-title-group">
+                                    <h3>${details.name}</h3>
+                                    <span class="cabin-subtitle">${details.subtitle}</span>
+                                </div>
+                                <div class="cabin-price-group">
+                                    <div class="cabin-price">$${parseFloat(price).toFixed(2)}</div>
+                                    <span class="cabin-price-label">per person</span>
+                                </div>
+                            </div>
+                            <p class="cabin-description">${details.description}</p>
+                            <div class="cabin-features">
+                                ${details.features.map(f => `<span class="feature-tag">✓ ${f}</span>`).join('')}
+                                <span class="feature-tag">Baggage: ${details.baggage} checked bag${details.baggage !== 1 ? 's' : ''} included</span>
+                                <span class="feature-tag">${details.refundable ? 'Refundable' : 'Non-refundable'}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="cabin-select-btn" data-cabin="${cabin}">
+                            Select ${details.name}
+                        </button>
+                    `;
+                    cabinOptions.appendChild(cabinCard);
+                }
+            });
+            
+            // Add click handlers to cabin select buttons
+            document.querySelectorAll('.cabin-select-btn').forEach(selectBtn => {
+                selectBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Cabin selected:', selectBtn.dataset.cabin);
+                    
+                    if (isRoundtrip) {
+                        selectedCabinOut.value = selectBtn.dataset.cabin;
+                        cabinOutboundForm.submit();
+                    } else {
+                        selectedCabinOneway.value = selectBtn.dataset.cabin;
+                        cabinOnewayForm.submit();
+                    }
+                });
+            });
+        }
+        
+        // Show modal
+        console.log('Showing cabin modal');
+        cabinModal.removeAttribute('hidden');
+        cabinModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Handle roundtrip flight selection
+    document.querySelectorAll('.select-outbound-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Outbound select button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            const origin = btn.dataset.origin;
+            const destination = btn.dataset.destination;
+            const returnDate = btn.dataset.returnDate;
+            showCabinModal(flightData, true, origin, destination, returnDate);
+        });
+    });
+    
+    // Handle one-way flight selection
+    document.querySelectorAll('.select-oneway-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Oneway select button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            showCabinModal(flightData, false);
+        });
+    });
+    
+    // Close modal handlers
+    function closeCabinModal() {
+        console.log('Closing cabin modal');
+        cabinModal.setAttribute('hidden', '');
+        cabinModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    if (cabinCloseBtn) {
+        cabinCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Close button clicked');
+            closeCabinModal();
+        });
+    }
+    
+    if (cabinOverlay) {
+        cabinOverlay.addEventListener('click', (e) => {
+            console.log('Overlay clicked');
+            closeCabinModal();
+        });
+    }
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !cabinModal.hasAttribute('hidden')) {
+            console.log('Escape key pressed');
+            closeCabinModal();
+        }
+    });
+</script>
 {% endblock %}
