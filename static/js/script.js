@@ -11,21 +11,39 @@
  * - Airport autocomplete search
  * - Roundtrip flight selection flow
  * - Popular destinations interaction
- * 
+ *
  * Author: Group 5
  * Date: 2025
+ *
+ * Table of Contents
+ * -----------------
+ * 1) DOM Ready Bootstrap
+ * 2) Navbar / Burger Menu
+ * 3) Trip Type Toggle + Date Min Handling
+ * 4) Sort Select & No Flights Placeholder
+ * 5) Populate Flight Cards (route/stops)
+ * 6) Flight "Show More" Modal + Cabin Select
+ * 7) Date Slider (alternate dates)
+ * 8) Popular Destinations Quick-Fill
+ * 9) Basic Airport Autocomplete (legacy)
+ * 10) Roundtrip Selection Flow (summary builder)
+ * 11) Enhanced Airport Autocomplete (rich dropdown)
  */
 
 console.log("Skyvela frontend connected successfully!");
 
 
-// ========================DOMContentLoaded Wrapper===========================
-// All DOM-dependent code runs after page is fully loaded
+/* =========================================================================
+    1) DOM READY BOOTSTRAP
+    All DOM-dependent code runs after page is fully loaded
+    ========================================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    // ===== Burger Menu Toggle =====
-    // Handles mobile navigation menu open/close
+     /* =====================================================================
+         2) NAVBAR / BURGER MENU
+         Handles mobile navigation menu open/close
+         ===================================================================== */
     const burgerMenu = document.querySelector('.burger-menu');
     const navLinks = document.querySelector('.nav-links');
     
@@ -62,8 +80,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Safe airports map - prevents errors if AIRPORTS data isn't loaded
     const airportsMap = (typeof AIRPORTS !== 'undefined' ? AIRPORTS : (window.AIRPORTS || {}));
     
-    // ===== Trip type toggle (show/hide return date) =====
-    // Dynamically shows/hides return date field based on trip type selection
+     /* =====================================================================
+         3) TRIP TYPE TOGGLE + MIN DATE HANDLING
+         Dynamically shows/hides return date field; sets min dates
+         ===================================================================== */
     const tripTypeRadios = document.querySelectorAll('input[name="trip_type"]');
     const returnWrap = document.getElementById("return-date-wrapper");
     
@@ -103,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
     
-    // ===== Set minimum dates for date inputs =====
+    // --- Set minimum dates for date inputs ---
     const today = new Date().toISOString().split('T')[0];
     const departureInput = document.getElementById('date');
     const returnInput = document.getElementById('return_date');
@@ -142,8 +162,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tripTypeEl.addEventListener('change', toggleReturn);
         toggleReturn();
     }
-    const sortSelect = document.getElementById("sort-options");
-    const flightsContainer = document.getElementById("flights-container");
+     /* =====================================================================
+         4) SORT SELECT & NO-FLIGHTS PLACEHOLDER
+         ===================================================================== */
+     const sortSelect = document.getElementById("sort-options");
+     const flightsContainer = document.getElementById("flights-container");
     if (sortSelect && flightsContainer) {
         sortSelect.addEventListener("change", () => {
             alert(`Sorting by: ${sortSelect.value}`);
@@ -156,7 +179,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
   
-//  =======================Populate Flight Cards=======================
+/* =========================================================================
+    5) POPULATE FLIGHT CARDS (ROUTE / STOPS)
+    ========================================================================= */
   
     const modal = document.getElementById("flightModal");
     const modalBody = document.getElementById("flightModalBody");
@@ -208,7 +233,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (existingDetails) existingDetails.remove();
     });
 
-    //======================= Flight "Show More" Popup ===========================
+     /* =========================================================================
+         6) FLIGHT "SHOW MORE" MODAL + CABIN SELECT
+         ========================================================================= */
     let currentModalContext = null; // { leg: 'outbound'|'return'|'oneway', flightData, cardEl }
     document.querySelectorAll(".show-more-btn").forEach(btn => {
     btn.addEventListener("click", e => {
@@ -389,7 +416,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // =====================Date Slider / Day Buttons ===========================
+     /* =========================================================================
+         7) DATE SLIDER (ALTERNATE DATES)
+         ========================================================================= */
     
     const container = document.getElementById("date-slider-container");
     if (container) {
@@ -420,7 +449,9 @@ document.addEventListener("DOMContentLoaded", () => {
         nextBtn?.addEventListener("click", () => container.scrollBy({ left: 150, behavior: "smooth" }));
     }
     
-    // ===== Popular Destinations Click Handler =====
+     /* =========================================================================
+         8) POPULAR DESTINATIONS QUICK-FILL
+         ========================================================================= */
     document.querySelectorAll('.destination-card').forEach(card => {
         card.addEventListener('click', function() {
             const destination = this.dataset.destination;
@@ -455,7 +486,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-// ==========================Airport Autocomplete==================
+/* =========================================================================
+    9) BASIC AIRPORT AUTOCOMPLETE (LEGACY)
+    ========================================================================= */
 
 let airports = [];
 if (typeof AIRPORTS !== 'undefined') {
@@ -517,7 +550,9 @@ setupAutocomplete('origin', 'origin_code');
 setupAutocomplete('destination', 'destination_code');
 
 
-// ======================= Roundtrip selection flow =========================
+/* =========================================================================
+    10) ROUNDTRIP SELECTION FLOW (SUMMARY BUILDER)
+    ========================================================================= */
 (function(){
     const tripTypeEl = document.getElementById('trip_type');
     if (!tripTypeEl || tripTypeEl.value !== 'roundtrip') return;
@@ -657,11 +692,13 @@ setupAutocomplete('destination', 'destination_code');
 })();
 
 
-// ======================== Enhanced Airport Autocomplete ===========================
-// Provides real-time airport search suggestions with support for:
-// - City names (e.g., "Paris", "New York")
-// - Airport names (e.g., "Charles de Gaulle", "JFK International")
-// - IATA codes (e.g., "CDG", "JFK")
+/* =========================================================================
+    11) ENHANCED AIRPORT AUTOCOMPLETE
+    Provides real-time airport search suggestions with support for:
+    - City names (e.g., "Paris", "New York")
+    - Airport names (e.g., "Charles de Gaulle", "JFK International")
+    - IATA codes (e.g., "CDG", "JFK")
+    ========================================================================= */
 
 (function() {
     // Load airports data from global AIRPORTS object

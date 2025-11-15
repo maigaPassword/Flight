@@ -531,6 +531,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                         <input type="hidden" name="adults" id="adults-input" value="1">
                         <input type="hidden" name="children" id="children-input" value="0">
                         <input type="hidden" name="infants" id="infants-input" value="0">
+                        <!-- Hidden fields to store selected IATA codes from autocomplete -->
+                        <input type="hidden" name="origin_code" id="origin_code" value="">
+                        <input type="hidden" name="destination_code" id="destination_code" value="">
                     </div>
                 </div>
                 
@@ -565,7 +568,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
                             Search Flights
                         </button>
                     </div>
-                </div>
             </form>
         </div>
     </div>
@@ -797,30 +799,22 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Trip type radios:', radios);
     console.log('Wrapper classes:', wrapper ? wrapper.className : 'NOT FOUND');
     
-    // ============ INLINE AIRPORT AUTOCOMPLETE ============
-    // This runs DIRECTLY in home.html - no external dependencies
-    console.log('🚀 Starting inline autocomplete setup...');
-    console.log('AIRPORTS available?', typeof AIRPORTS !== 'undefined');
-    console.log('AIRPORTS count:', typeof AIRPORTS !== 'undefined' ? Object.keys(AIRPORTS).length : 0);
-    
-    // Setup autocomplete for both fields
-    function setupInlineAutocomplete(inputId) {
+    // ============ AIRPORT AUTOCOMPLETE (via API) ============
+    // Single, robust autocomplete using /api/airports/search
+    function setupAirportAutocomplete(inputId) {
         const input = document.getElementById(inputId);
-        if (!input) {
-            console.error(`❌ Input #${inputId} not found!`);
-            return;
-        }
+        if (!input) return;
+        const codeField = document.getElementById(inputId === 'origin' ? 'origin_code' : 'destination_code');
         
-        console.log(`✅ Found input #${inputId}, setting up autocomplete...`);
-        
-        // Create dropdown
+        // Create dropdown container
         const dropdown = document.createElement('div');
+        dropdown.setAttribute('role', 'listbox');
         dropdown.style.cssText = `
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, rgba(3, 4, 94, 0.98), rgba(2, 62, 138, 0.98));
+            background: #ffffff;
             border: 2px solid #48cae4;
             border-radius: 12px;
             margin-top: 4px;
@@ -828,96 +822,111 @@ document.addEventListener('DOMContentLoaded', function() {
             overflow-y: auto;
             display: none;
             z-index: 999999;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(72, 202, 228, 0.3);
         `;
-        
         input.parentElement.appendChild(dropdown);
         
-        // Convert AIRPORTS to array
-        const airports = typeof AIRPORTS !== 'undefined' ? 
-            Object.entries(AIRPORTS).map(([iata, info]) => ({
-                iata, 
-                name: info.name || '', 
-                city: info.city || '', 
-                country: info.country || ''
-            })) : [];
+        let debounceTimer = null;
+        let activeIndex = -1;
+        let items = [];
         
-        console.log(`📋 ${inputId}: Loaded ${airports.length} airports`);
-        
-        // Input handler
-        input.addEventListener('input', function() {
-            const keyword = this.value.trim().toLowerCase();
-            console.log(`📝 ${inputId}: User typed "${keyword}"`);
-            
+        function render(itemsData, keyword) {
             dropdown.innerHTML = '';
-            
-            if (keyword.length < 2) {
-                dropdown.style.display = 'none';
-                return;
-            }
-            
-            // Search
-            const matches = airports.filter(a =>
-                a.iata.toLowerCase().includes(keyword) ||
-                a.city.toLowerCase().includes(keyword) ||
-                a.name.toLowerCase().includes(keyword)
-            ).slice(0, 8);
-            
-            console.log(`🔍 ${inputId}: Found ${matches.length} matches`);
-            
-            if (matches.length === 0) {
-                dropdown.innerHTML = `
-                    <div style="padding: 15px; text-align: center; color: rgba(255,255,255,0.7);">
-                        No airports found for "${keyword}"
-                    </div>
-                `;
+            activeIndex = -1;
+            items = [];
+            if (!itemsData.length) {
+                const empty = document.createElement('div');
+                empty.style.cssText = 'padding: 14px 16px; color: #023e8a; font-weight: 500;';
+                empty.textContent = `No airports found for "${keyword}"`;
+                dropdown.appendChild(empty);
                 dropdown.style.display = 'block';
                 return;
             }
-            
-            // Show results
-            matches.forEach(airport => {
+            itemsData.forEach((s, idx) => {
                 const item = document.createElement('div');
+                item.setAttribute('role', 'option');
                 item.style.cssText = `
-                    padding: 12px 15px;
+                    padding: 12px 16px;
                     cursor: pointer;
-                    border-bottom: 1px solid rgba(72, 202, 228, 0.15);
-                    transition: background 0.2s;
+                    border-bottom: 1px solid rgba(72, 202, 228, 0.25);
+                    display: flex; align-items: center; gap: 12px;
+                    background: transparent; transition: background 0.2s ease;
                 `;
-                
-                const location = airport.city + (airport.country ? `, ${airport.country}` : '');
                 item.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="
-                            background: rgba(72, 202, 228, 0.2);
-                            border: 1.5px solid #48cae4;
-                            border-radius: 6px;
-                            padding: 6px 10px;
-                            font-weight: 700;
-                            color: #48cae4;
-                            min-width: 50px;
-                            text-align: center;
-                        ">${airport.iata}</div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: #fff; margin-bottom: 2px;">${location}</div>
-                            <div style="font-size: 0.85rem; color: rgba(173, 232, 244, 0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${airport.name}</div>
-                        </div>
+                    <div style="
+                        background: linear-gradient(135deg, #0077b6, #00b4d8);
+                        border: 2px solid #48cae4;
+                        border-radius: 8px; padding: 6px 10px;
+                        font-weight: 700; color: #ffffff; min-width: 52px; text-align: center;">
+                        ${s.iata}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #03045e; font-weight: 700;">${s.display}</div>
+                        <div style="color: #023e8a; opacity: 0.75; font-size: 0.85rem;">${s.city || ''}${s.country ? ' · ' + s.country : ''}</div>
                     </div>
                 `;
-                
-                item.addEventListener('mouseenter', () => item.style.background = 'rgba(72, 202, 228, 0.15)');
-                item.addEventListener('mouseleave', () => item.style.background = 'transparent');
-                
-                item.addEventListener('click', () => {
-                    input.value = airport.iata;
+                function select() {
+                    // Fill input with full display string and store IATA code
+                    input.value = s.display;
+                    if (codeField) codeField.value = s.iata;
+                    // Fire events so any listeners react to programmatic change
+                    try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+                    try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+                    // Keep focus on input for usability
+                    input.focus();
                     dropdown.style.display = 'none';
-                    console.log(`✅ ${inputId}: Selected ${airport.iata}`);
-                });
-                
+                }
+                // Use pointerdown/mousedown to ensure selection happens before blur/close
+                item.addEventListener('mousedown', (ev) => { ev.preventDefault(); select(); });
+                item.addEventListener('click', (ev) => { ev.preventDefault(); select(); });
+                item.addEventListener('mouseenter', () => { item.style.background = 'rgba(72, 202, 228, 0.12)'; });
+                item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
                 dropdown.appendChild(item);
+                items.push({el: item, data: s, select});
             });
-            
             dropdown.style.display = 'block';
+        }
+        
+    function fetchSuggestions(q) {
+            fetch(`/api/airports/search?keyword=${encodeURIComponent(q)}`)
+                .then(r => r.ok ? r.json() : [])
+                .then(data => Array.isArray(data) ? data : [])
+        .then(list => render(list, q))
+                .catch(() => render([], q));
+        }
+        
+        input.addEventListener('input', () => {
+            const q = input.value.trim();
+            if (codeField) codeField.value = '';
+            clearTimeout(debounceTimer);
+            if (q.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            debounceTimer = setTimeout(() => fetchSuggestions(q), 200);
+        });
+        
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            if (dropdown.style.display !== 'block') return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = (activeIndex + 1) % items.length;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+            } else if (e.key === 'Enter') {
+                if (activeIndex >= 0 && items[activeIndex]) {
+                    e.preventDefault();
+                    items[activeIndex].select();
+                }
+                return;
+            } else {
+                return; // ignore other keys
+            }
+            items.forEach((it, idx) => {
+                it.el.style.background = idx === activeIndex ? 'rgba(72, 202, 228, 0.18)' : 'transparent';
+            });
         });
         
         // Close on outside click
@@ -929,10 +938,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialize for both inputs
-    setupInlineAutocomplete('origin');
-    setupInlineAutocomplete('destination');
-    console.log('✅ Inline autocomplete setup complete!');
-    
+    setupAirportAutocomplete('origin');
+    setupAirportAutocomplete('destination');
     // ============ END AUTOCOMPLETE ============
     
     // Passenger selector toggle
@@ -1005,152 +1012,7 @@ function updatePassengersText() {
     document.getElementById('passengersText').textContent = total;
 }
 
-// ========================================
-// AIRPORT AUTOCOMPLETE - Uses airports.json
-// ========================================
-(function() {
-    let airportsList = [];
-    
-    // Load airports from JSON file
-    fetch('/static/../json-files/airports.json')
-        .then(response => response.json())
-        .then(data => {
-            // Convert to array, filter only airports with IATA codes
-            airportsList = Object.values(data)
-                .filter(airport => airport.iata && airport.iata.length === 3)
-                .map(airport => ({
-                    iata: airport.iata,
-                    name: airport.name,
-                    city: airport.city,
-                    country: airport.country,
-                    state: airport.state
-                }));
-            
-            console.log('✈️ Loaded', airportsList.length, 'airports from airports.json');
-            
-            // Setup autocomplete for both inputs
-            setupAutocomplete('origin');
-            setupAutocomplete('destination');
-        })
-        .catch(error => console.error('Error loading airports:', error));
-    
-    function setupAutocomplete(inputId) {
-        const input = document.getElementById(inputId);
-        if (!input) return;
-        
-        const dropdown = document.createElement('div');
-        dropdown.className = 'airport-dropdown';
-        dropdown.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border: 2px solid #48cae4;
-            border-radius: 12px;
-            margin-top: 4px;
-            max-height: 350px;
-            overflow-y: auto;
-            display: none;
-            z-index: 999999;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(72, 202, 228, 0.3);
-        `;
-        
-        input.parentElement.appendChild(dropdown);
-        
-        let debounceTimer;
-        
-        input.addEventListener('input', function() {
-            const keyword = this.value.trim().toLowerCase();
-            clearTimeout(debounceTimer);
-            
-            if (keyword.length < 2) {
-                dropdown.style.display = 'none';
-                return;
-            }
-            
-            debounceTimer = setTimeout(() => {
-                const matches = airportsList.filter(airport => 
-                    airport.iata.toLowerCase().includes(keyword) ||
-                    airport.city.toLowerCase().includes(keyword) ||
-                    airport.name.toLowerCase().includes(keyword)
-                ).slice(0, 8);
-                
-                dropdown.innerHTML = '';
-                
-                if (matches.length === 0) {
-                    dropdown.innerHTML = `<div style="padding: 20px; text-align: center; color: #023e8a; font-weight: 500;">No airports found</div>`;
-                    dropdown.style.display = 'block';
-                    return;
-                }
-                
-                matches.forEach(airport => {
-                    const item = document.createElement('div');
-                    item.style.cssText = `
-                        padding: 14px 18px;
-                        cursor: pointer;
-                        border-bottom: 1px solid rgba(72, 202, 228, 0.3);
-                        display: flex;
-                        align-items: center;
-                        gap: 14px;
-                        transition: all 0.3s ease;
-                        background: transparent;
-                    `;
-                    
-                    const location = airport.city + (airport.state ? `, ${airport.state}` : '') + (airport.country ? `, ${airport.country}` : '');
-                    
-                    item.innerHTML = `
-                        <div style="
-                            background: linear-gradient(135deg, #0077b6, #00b4d8);
-                            border: 2px solid #48cae4;
-                            border-radius: 8px;
-                            padding: 8px 12px;
-                            font-weight: 700;
-                            color: #ffffff;
-                            min-width: 50px;
-                            text-align: center;
-                            font-size: 0.95rem;
-                            letter-spacing: 0.5px;
-                            box-shadow: 0 2px 8px rgba(72, 202, 228, 0.3);
-                        ">${airport.iata}</div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="color: #03045e; font-weight: 600; font-size: 0.95rem; margin-bottom: 3px;">${location}</div>
-                            <div style="color: #023e8a; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8;">${airport.name}</div>
-                        </div>
-                    `;
-                    
-                    item.onmouseenter = () => {
-                        item.style.background = 'linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 180, 216, 0.1))';
-                        item.style.borderLeft = '4px solid #0077b6';
-                        item.style.paddingLeft = '14px';
-                    };
-                    item.onmouseleave = () => {
-                        item.style.background = 'transparent';
-                        item.style.borderLeft = 'none';
-                        item.style.paddingLeft = '18px';
-                    };
-                    
-                    item.onclick = () => {
-                        // Format: "City, Country - Airport Name (CODE)"
-                        const displayText = `${airport.city}${airport.country ? ', ' + airport.country : ''}${airport.state ? ', ' + airport.state : ''} - ${airport.name} (${airport.iata})`;
-                        input.value = displayText;
-                        dropdown.style.display = 'none';
-                    };
-                    
-                    dropdown.appendChild(item);
-                });
-                
-                dropdown.style.display = 'block';
-            }, 250);
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-    }
-})();
+// (Removed legacy airports.json autocomplete in favor of API-based implementation above)
 </script>
 
 {% endblock %}

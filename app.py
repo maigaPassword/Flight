@@ -866,6 +866,7 @@ def booking():
         child_price=f"{child_price:.2f}",
         infant_price=f"{infant_price:.2f}",
         AIRPORTS=AIRPORTS,
+        COUNTRY_NAMES=COUNTRY_NAMES,
         stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY']
     )
 
@@ -879,9 +880,25 @@ def create_payment_intent():
     Create a Stripe Payment Intent for the booking.
     """
     try:
-        data = request.get_json()
-        amount = int(float(data.get('amount', 0)) * 100)  # Convert to cents
-        
+        data = request.get_json() or {}
+
+        # Validate and normalize amount
+        try:
+            amount_float = float(data.get('amount', 0))
+        except Exception:
+            return jsonify(error='Invalid amount provided'), 400
+
+        if amount_float <= 0:
+            return jsonify(error='Amount must be greater than zero'), 400
+
+        amount = int(round(amount_float * 100))  # Convert to cents
+
+        # Validate Stripe configuration (helpful error if not configured)
+        secret_from_env = os.getenv('STRIPE_SECRET_KEY', '')
+        publishable_from_env = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+        if not secret_from_env or 'Example' in secret_from_env or 'Example' in app.config.get('STRIPE_PUBLISHABLE_KEY', ''):
+            return jsonify(error='Stripe is not configured. Please set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY in your environment or .env file.'), 500
+
         # Create a PaymentIntent with the order amount and currency
         intent = stripe.PaymentIntent.create(
             amount=amount,
@@ -894,7 +911,7 @@ def create_payment_intent():
                 'email': data.get('email', ''),
             }
         )
-        
+
         return jsonify({
             'clientSecret': intent['client_secret']
         })
@@ -922,6 +939,13 @@ def confirmation():
     cabin_out = request.form.get('cabin_out', 'ECONOMY')
     cabin_ret = request.form.get('cabin_ret', 'ECONOMY')
     total_price = request.form.get('total_price', '0.00')
+    passenger_details_json = request.form.get('passenger_details')
+    passenger_details = []
+    try:
+        if passenger_details_json:
+            passenger_details = json.loads(passenger_details_json)
+    except Exception:
+        passenger_details = []
     
     # Parse flight data
     try:
@@ -949,6 +973,7 @@ def confirmation():
         cabin_out=cabin_out,
         cabin_ret=cabin_ret,
         total_price=total_price,
+        passenger_details=passenger_details,
         origin_city=origin_city,
         destination_city=destination_city,
         AIRPORTS=AIRPORTS,
@@ -962,48 +987,87 @@ def confirmation():
 @app.route('/api/airports/search')
 def airport_search():
     """
-    Search airports by keyword using Amadeus Airport & City Search API.
-    Returns airport suggestions for autocomplete functionality.
+    Search airports by keyword.
+    Primary source: local AIRPORTS dataset for broad/global coverage (fast, offline).
+    Secondary source: Amadeus Airport & City Search API to enrich results when available.
+    Returns airport suggestions for autocomplete functionality with a consistent shape.
     """
     keyword = request.args.get('keyword', '').strip()
     
     if not keyword or len(keyword) < 2:
         return jsonify([])
     
+    # Normalize for search
+    q = keyword.lower()
+
+    def build_display(iata_code: str, name: str, city_name: str, country: str = "") -> str:
+        city_part = city_name or iata_code
+        name_part = name or ""
+        country_part = f", {country}" if country else ""
+        # Example: "Lagos, Nigeria - Murtala Muhammed Intl (LOS)"
+        return f"{city_part}{country_part} - {name_part} ({iata_code})".strip()
+
+    # 1) Local fallback (primary) using AIRPORTS loaded at startup
+    local_matches = []
     try:
-        # Use Amadeus Airport & City Search API
-        response = amadeus.reference_data.locations.get(
-            keyword=keyword,
-            subType='AIRPORT,CITY'
-        )
-        
-        suggestions = []
-        if hasattr(response, 'data'):
-            for location in response.data[:10]:  # Limit to 10 results
-                iata_code = location.get('iataCode', '')
-                name = location.get('name', '')
-                city_name = location.get('address', {}).get('cityName', '')
-                country = location.get('address', {}).get('countryName', '')
-                
-                # Format: "New York - John F Kennedy Intl (JFK)"
-                display = f"{city_name} - {name} ({iata_code})"
-                
-                suggestions.append({
-                    'iata': iata_code,
+        for iata, info in AIRPORTS.items():
+            city = (info.get('city') or '').strip()
+            name = (info.get('name') or '').strip()
+            country = (info.get('country') or '').strip()
+            if (
+                q in iata.lower() or
+                (city and q in city.lower()) or
+                (name and q in name.lower())
+            ):
+                local_matches.append({
+                    'iata': iata,
                     'name': name,
-                    'city': city_name,
+                    'city': city,
                     'country': country,
-                    'display': display
+                    'display': build_display(iata, name, city, country)
                 })
-        
-        return jsonify(suggestions)
-    
-    except ResponseError as e:
-        print(f"❌ Airport search error: {e}")
-        return jsonify([])
+            if len(local_matches) >= 20:
+                break
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        return jsonify([])
+        print(f"❌ Local airport search error: {e}")
+        local_matches = []
+
+    results_by_iata = {s['iata']: s for s in local_matches}
+
+    # 2) Remote enrichment (secondary) using Amadeus
+    # Only attempt if we have fewer than 20 matches to keep list concise
+    try:
+        if len(results_by_iata) < 20 and os.getenv('AMADEUS_CLIENT_ID') and os.getenv('AMADEUS_CLIENT_SECRET'):
+            response = amadeus.reference_data.locations.get(
+                keyword=keyword,
+                subType='AIRPORT,CITY'
+            )
+            if hasattr(response, 'data') and response.data:
+                for location in response.data:
+                    iata_code = location.get('iataCode') or ''
+                    if not iata_code or iata_code in results_by_iata:
+                        continue
+                    name = location.get('name') or ''
+                    city_name = (location.get('address', {}) or {}).get('cityName') or ''
+                    country = (location.get('address', {}) or {}).get('countryName') or ''
+                    results_by_iata[iata_code] = {
+                        'iata': iata_code,
+                        'name': name,
+                        'city': city_name,
+                        'country': country,
+                        'display': build_display(iata_code, name, city_name, country)
+                    }
+                    if len(results_by_iata) >= 20:
+                        break
+    except ResponseError as e:
+        # Log but don't fail the endpoint — local data still works
+        print(f"❌ Airport search (Amadeus) error: {e}")
+    except Exception as e:
+        print(f"❌ Unexpected airport search error: {e}")
+
+    # Return combined results (local first, then remote), up to 20
+    suggestions = list(results_by_iata.values())[:20]
+    return jsonify(suggestions)
 
 
 # =========================

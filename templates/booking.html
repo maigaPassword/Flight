@@ -43,6 +43,15 @@
                        placeholder="Last name">
               </div>
               <div class="form-group">
+                <label for="adult_{{ i }}_nationality">Nationality <span class="required">*</span></label>
+                <select id="adult_{{ i }}_nationality" name="adult_{{ i }}_nationality" required>
+                  <option value="" disabled selected>Select nationality</option>
+                  {% for code, name in COUNTRY_NAMES|dictsort(by='value') %}
+                    <option value="{{ code }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
                 <label for="adult_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
                 <input type="date" id="adult_{{ i }}_dob" name="adult_{{ i }}_dob" required>
               </div>
@@ -71,6 +80,15 @@
                        placeholder="Last name">
               </div>
               <div class="form-group">
+                <label for="child_{{ i }}_nationality">Nationality <span class="required">*</span></label>
+                <select id="child_{{ i }}_nationality" name="child_{{ i }}_nationality" required>
+                  <option value="" disabled selected>Select nationality</option>
+                  {% for code, name in COUNTRY_NAMES|dictsort(by='value') %}
+                    <option value="{{ code }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
                 <label for="child_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
                 <input type="date" id="child_{{ i }}_dob" name="child_{{ i }}_dob" required>
               </div>
@@ -97,6 +115,15 @@
                 <label for="infant_{{ i }}_last_name">Last Name <span class="required">*</span></label>
                 <input type="text" id="infant_{{ i }}_last_name" name="infant_{{ i }}_last_name" required 
                        placeholder="Last name">
+              </div>
+              <div class="form-group">
+                <label for="infant_{{ i }}_nationality">Nationality <span class="required">*</span></label>
+                <select id="infant_{{ i }}_nationality" name="infant_{{ i }}_nationality" required>
+                  <option value="" disabled selected>Select nationality</option>
+                  {% for code, name in COUNTRY_NAMES|dictsort(by='value') %}
+                    <option value="{{ code }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
               </div>
               <div class="form-group">
                 <label for="infant_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
@@ -365,9 +392,26 @@ form.addEventListener('submit', async function(event) {
   spinner.classList.remove('hidden');
 
   // Get form data
-  const passengerName = document.getElementById('passenger_name').value;
+  // Build passenger name from first Adult's first/last name if available
+  let passengerName = '';
+  const firstAdultFirst = document.querySelector('[id^="adult_"][id$="_first_name"]');
+  const firstAdultLast = document.querySelector('[id^="adult_"][id$="_last_name"]');
+  if (firstAdultFirst && firstAdultLast) {
+    passengerName = `${firstAdultFirst.value} ${firstAdultLast.value}`.trim();
+  }
   const email = document.getElementById('email').value;
   const totalPrice = document.getElementById('total_price').value;
+
+  // Validate basic inputs
+  const amountNumber = parseFloat(totalPrice);
+  if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+    const errorElement = document.getElementById('card-errors');
+    errorElement.textContent = 'Invalid total amount.';
+    submitButton.disabled = false;
+    buttonText.classList.remove('hidden');
+    spinner.classList.add('hidden');
+    return;
+  }
 
   try {
     // Create payment intent
@@ -377,13 +421,27 @@ form.addEventListener('submit', async function(event) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        amount: totalPrice,
-        passenger_name: passengerName,
+        amount: amountNumber,
+        passenger_name: passengerName || email || 'Guest',
         email: email
       })
     });
 
-    const {clientSecret} = await response.json();
+    // Parse response and handle non-OK
+    const raw = await response.text();
+    let data = null;
+    try { data = raw ? JSON.parse(raw) : null; } catch (e) { data = null; }
+    if (!response.ok || !data || !data.clientSecret) {
+      const errorMsg = (data && data.error) ? data.error : 'Unable to initialize payment. Please try again.';
+      const errorElement = document.getElementById('card-errors');
+      errorElement.textContent = errorMsg;
+      submitButton.disabled = false;
+      buttonText.classList.remove('hidden');
+      spinner.classList.add('hidden');
+      return;
+    }
+
+    const clientSecret = data.clientSecret;
 
     // Confirm the payment
     const {error, paymentIntent} = await stripe.confirmCardPayment(clientSecret, {
@@ -413,6 +471,35 @@ form.addEventListener('submit', async function(event) {
         confirmForm.method = 'POST';
         confirmForm.action = '/confirmation';
         
+        // Collect passenger details including nationalities
+        const passengers = [];
+        function collectFor(prefix) {
+          const nodes = document.querySelectorAll(`[id^="${prefix}_"][id$="_nationality"]`);
+          nodes.forEach(sel => {
+            // id pattern: prefix_index_nationality
+            const id = sel.id; // e.g., adult_0_nationality
+            const parts = id.split('_');
+            const type = parts[0];
+            const index = parts[1];
+            const first = document.getElementById(`${type}_${index}_first_name`);
+            const last = document.getElementById(`${type}_${index}_last_name`);
+            const dob = document.getElementById(`${type}_${index}_dob`);
+            const passport = document.getElementById(`${type}_${index}_passport`);
+            passengers.push({
+              type,
+              index: Number(index),
+              first_name: first ? first.value : '',
+              last_name: last ? last.value : '',
+              dob: dob ? dob.value : '',
+              passport: passport ? passport.value : '',
+              nationality: sel.value || ''
+            });
+          });
+        }
+        collectFor('adult');
+        collectFor('child');
+        collectFor('infant');
+
         // Add all the necessary fields
         const fields = {
           'passenger_name': passengerName,
@@ -423,7 +510,8 @@ form.addEventListener('submit', async function(event) {
           'cabin_out': document.getElementById('cabin_out').value,
           'cabin_ret': document.getElementById('cabin_ret')?.value || '',
           'total_price': totalPrice,
-          'payment_intent_id': paymentIntent.id
+          'payment_intent_id': paymentIntent.id,
+          'passenger_details': JSON.stringify(passengers)
         };
         
         for (const [key, value] of Object.entries(fields)) {
@@ -436,11 +524,18 @@ form.addEventListener('submit', async function(event) {
         
         document.body.appendChild(confirmForm);
         confirmForm.submit();
+      } else {
+        const errorElement = document.getElementById('card-errors');
+        errorElement.textContent = 'Payment not completed. Please try another card or contact support.';
+        submitButton.disabled = false;
+        buttonText.classList.remove('hidden');
+        spinner.classList.add('hidden');
       }
     }
   } catch (err) {
     console.error('Payment error:', err);
-    alert('An error occurred during payment processing. Please try again.');
+    const errorElement = document.getElementById('card-errors');
+    errorElement.textContent = 'An error occurred during payment processing. Please try again.';
     
     // Re-enable button
     submitButton.disabled = false;

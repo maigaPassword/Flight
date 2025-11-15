@@ -2,1588 +2,314 @@
 {% block title %}Booking Confirmed{% endblock %}
 
 {% block content %}
-<section class="results-page confirmation-wrapper">
-  <div class="invoice-container">
-    
-    <!-- Success Banner -->
-    <div class="success-banner">
-      <div class="success-icon">
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="40" cy="40" r="38" stroke="url(#gradient)" stroke-width="4"/>
-          <path d="M25 40L35 50L55 30" stroke="#48cae4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-          <defs>
-            <linearGradient id="gradient" x1="0" y1="0" x2="80" y2="80">
-              <stop offset="0%" style="stop-color:#0077b6"/>
-              <stop offset="100%" style="stop-color:#00b4d8"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-      <h1>Booking Confirmed!</h1>
-      <p class="success-message">Your flight has been successfully booked. Get ready for an amazing journey!</p>
+<section class="results-page confirmation-light">
+  <div class="screen-only">
+    <div class="confirmation-container">
+    <div class="confirmation-header">
+      <h1>Booking Confirmed</h1>
+      <p class="confirmation-subtitle">Thank you! Your flight is booked and confirmed.</p>
     </div>
-    
-    <!-- Invoice Header -->
-    <div class="invoice-header">
-      <div class="invoice-title-section">
-        <h2>FLIGHT BOOKING INVOICE</h2>
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          PAID & CONFIRMED
-        </div>
+
+    <div class="status-badges">
+      <div class="status-badge">
+        <div class="badge-label">Status</div>
+        <div class="badge-value confirmed">Confirmed</div>
       </div>
-      <div class="invoice-meta">
-        <div class="meta-item">
-          <span class="meta-label">Booking Reference</span>
-          <span class="meta-value">{{ booking_ref }}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Booking Date</span>
-          <span class="meta-value">{{ now.strftime('%B %d, %Y') }}</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Time</span>
-          <span class="meta-value">{{ now.strftime('%I:%M %p') }}</span>
-        </div>
+      <div class="status-badge">
+        <div class="badge-label">Payment</div>
+        <div class="badge-value paid">Paid</div>
       </div>
     </div>
 
-    <!-- Two Column Layout -->
-    <div class="invoice-body">
-      
-      <!-- Left Column -->
-      <div class="invoice-left">
-        
-        <!-- Traveller Info -->
-        <div class="invoice-section traveller-section">
-          <div class="section-header">
-            <span class="section-icon"></span>
-            <h3>TRAVELLER INFORMATION</h3>
-          </div>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-icon"></span>
-              <div class="info-content">
-                <span class="info-label">Passenger Name</span>
-                <span class="info-value">{{ passenger_name }}</span>
-              </div>
-            </div>
-            <div class="info-item">
-              <span class="info-icon"></span>
-              <div class="info-content">
-                <span class="info-label">Email Address</span>
-                <span class="info-value">{{ email }}</span>
-              </div>
-            </div>
-            <div class="info-item">
-              <span class="info-icon"></span>
-              <div class="info-content">
-                <span class="info-label">Phone Number</span>
-                <span class="info-value">{{ phone }}</span>
-              </div>
-            </div>
-            {% if request.form.get('dob') %}
-            <div class="info-item">
-              <span class="info-icon"></span>
-              <div class="info-content">
-                <span class="info-label">Date of Birth</span>
-                <span class="info-value">{{ request.form.get('dob') }}</span>
-              </div>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Outbound Flight -->
-        <div class="invoice-section flight-section">
-          <div class="section-header">
-            <span class="section-icon"></span>
-            <h3>OUTBOUND FLIGHT</h3>
-          </div>
-          <div class="flight-details-card">
-            {% if outbound.airline_name %}
-            <div class="airline-info">
-              <span class="airline-badge">{{ outbound.airline_name }}</span>
-            </div>
-            {% endif %}
-            <div class="route-visual">
-              <div class="route-point">
-                <div class="location-dot"></div>
-                <div class="location-info">
-                  <span class="city-name">{{ origin_city }}</span>
-                  <span class="airport-code">{{ outbound.origin }}</span>
-                </div>
-              </div>
-              <div class="route-line">
-                <div class="plane-icon">✈️</div>
-              </div>
-              <div class="route-point">
-                <div class="location-dot"></div>
-                <div class="location-info">
-                  <span class="city-name">{{ destination_city }}</span>
-                  <span class="airport-code">{{ outbound.destination }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="flight-time-grid">
-              <div class="time-item">
-                <span class="time-label">🛫 Departure</span>
-                <span class="time-value">{{ outbound.departure | time12 }}</span>
-                <span class="date-value">{{ outbound.departure | date_compact }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">🛬 Arrival</span>
-                <span class="time-value">{{ outbound.arrival | time12 }}</span>
-                <span class="date-value">{{ outbound.arrival | date_compact }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">⏱️ Duration</span>
-                <span class="time-value">{{ outbound.duration }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">💺 Cabin Class</span>
-                <span class="time-value">{{ cabin_out }}</span>
-              </div>
-              {% if outbound.stops_text %}
-              <div class="time-item full-width">
-                <span class="time-label">🔄 Stops</span>
-                <span class="time-value">{{ outbound.stops_text }}</span>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <!-- Return Flight -->
-        {% if return_flight %}
-        <div class="invoice-section flight-section">
-          <div class="section-header">
-            <span class="section-icon">🛬</span>
-            <h3>RETURN FLIGHT</h3>
-          </div>
-          <div class="flight-details-card">
-            {% if return_flight.airline_name %}
-            <div class="airline-info">
-              <span class="airline-badge">{{ return_flight.airline_name }}</span>
-            </div>
-            {% endif %}
-            <div class="route-visual">
-              <div class="route-point">
-                <div class="location-dot"></div>
-                <div class="location-info">
-                  <span class="city-name">{{ destination_city }}</span>
-                  <span class="airport-code">{{ return_flight.origin }}</span>
-                </div>
-              </div>
-              <div class="route-line">
-                <div class="plane-icon">✈️</div>
-              </div>
-              <div class="route-point">
-                <div class="location-dot"></div>
-                <div class="location-info">
-                  <span class="city-name">{{ origin_city }}</span>
-                  <span class="airport-code">{{ return_flight.destination }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="flight-time-grid">
-              <div class="time-item">
-                <span class="time-label">🛫 Departure</span>
-                <span class="time-value">{{ return_flight.departure | time12 }}</span>
-                <span class="date-value">{{ return_flight.departure | date_compact }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">🛬 Arrival</span>
-                <span class="time-value">{{ return_flight.arrival | time12 }}</span>
-                <span class="date-value">{{ return_flight.arrival | date_compact }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">⏱️ Duration</span>
-                <span class="time-value">{{ return_flight.duration }}</span>
-              </div>
-              <div class="time-item">
-                <span class="time-label">💺 Cabin Class</span>
-                <span class="time-value">{{ cabin_ret }}</span>
-              </div>
-              {% if return_flight.stops_text %}
-              <div class="time-item full-width">
-                <span class="time-label">🔄 Stops</span>
-                <span class="time-value">{{ return_flight.stops_text }}</span>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
+    <div class="booking-reference">
+      <div class="reference-label">Booking Reference</div>
+      <div class="reference-code">{{ booking_ref }}</div>
+      <p class="reference-note">We've sent a receipt and your itinerary to {{ email }}.</p>
+      <div class="booking-id-info">
+        <span>{{ now.strftime('%B %d, %Y') }}</span>
+        <span>{{ now.strftime('%I:%M %p') }}</span>
       </div>
-
-      <!-- Right Column -->
-      <div class="invoice-right">
-        
-        <!-- Fare Details -->
-        <div class="invoice-section fare-section">
-          <div class="section-header">
-            <span class="section-icon">💰</span>
-            <h3>FARE BREAKDOWN</h3>
-          </div>
-          <div class="fare-details">
-            <div class="fare-row">
-              <span class="fare-label">Base Fare</span>
-              <span class="fare-amount">${{ total_price }}</span>
-            </div>
-            <div class="fare-row">
-              <span class="fare-label">Taxes & Fees</span>
-              <span class="fare-amount">$0.00</span>
-            </div>
-            <div class="fare-divider"></div>
-            <div class="fare-row total-fare">
-              <span class="fare-label">Total Amount</span>
-              <span class="fare-amount">${{ total_price }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Baggage -->
-        <div class="invoice-section baggage-section">
-          <div class="section-header">
-            <span class="section-icon">🧳</span>
-            <h3>BAGGAGE ALLOWANCE</h3>
-          </div>
-          <div class="baggage-items">
-            <div class="baggage-item">
-              <span class="baggage-icon">👜</span>
-              <div class="baggage-info">
-                <span class="baggage-type">Cabin Baggage</span>
-                <span class="baggage-weight">Included</span>
-              </div>
-            </div>
-            <div class="baggage-item">
-              <span class="baggage-icon">🧳</span>
-              <div class="baggage-info">
-                <span class="baggage-type">Checked Baggage</span>
-                <span class="baggage-weight">23 kg</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Customer Support -->
-        <div class="invoice-section support-section">
-          <div class="section-header">
-            <span class="section-icon">💬</span>
-            <h3>NEED HELP?</h3>
-          </div>
-          <div class="support-items">
-            <div class="support-item">
-              <span class="support-icon">📧</span>
-              <div class="support-info">
-                <span class="support-label">Email</span>
-                <span class="support-value">support@flightbooking.com</span>
-              </div>
-            </div>
-            <div class="support-item">
-              <span class="support-icon">📞</span>
-              <div class="support-info">
-                <span class="support-label">Phone</span>
-                <span class="support-value">+1-800-FLY-NOW</span>
-              </div>
-            </div>
-            <div class="support-item">
-              <span class="support-icon">🌐</span>
-              <div class="support-info">
-                <span class="support-label">Website</span>
-                <span class="support-value">www.flightbooking.com</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Important Info -->
-        <div class="invoice-section important-section">
-          <div class="section-header">
-            <span class="section-icon">⚠️</span>
-            <h3>IMPORTANT NOTES</h3>
-          </div>
-          <ul class="important-list">
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Check-in opens 24 hours before departure</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Arrive at airport 2 hours before flight</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Bring valid ID/Passport for verification</span>
-            </li>
-            <li>
-              <span class="check-icon">✓</span>
-              <span>Confirmation sent to {{ email }}</span>
-            </li>
-          </ul>
-        </div>
-
-      </div>
-
     </div>
 
-    <!-- Footer Actions -->
-    <div class="invoice-footer">
-      <button class="btn-action btn-print" onclick="window.print()">
-        <span class="btn-icon">🖨️</span>
-        Print Invoice
-      </button>
-      <a href="{{ url_for('home') }}" class="btn-action btn-home">
-        <span class="btn-icon">🏠</span>
-        Back to Home
-      </a>
+    <!-- Traveller Details -->
+    <div class="confirmation-section">
+      <div class="section-title">
+        <h3>Traveller Details</h3>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label">Passenger Name</div>
+          <div class="detail-value">{{ passenger_name }}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Email</div>
+          <div class="detail-value">{{ email }}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Phone</div>
+          <div class="detail-value">{{ phone }}</div>
+        </div>
+      </div>
+      {% if passenger_details and passenger_details|length > 0 %}
+      <div class="passenger-list" style="margin-top: 1rem;">
+        <div class="section-title">
+          <h4>Passengers</h4>
+        </div>
+        <div class="detail-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+          {% for p in passenger_details %}
+          <div class="detail-item">
+            <div class="detail-label">Name</div>
+            <div class="detail-value">{{ p.first_name }} {{ p.last_name }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Type</div>
+            <div class="detail-value">{{ p.type|capitalize }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Nationality</div>
+            <div class="detail-value">{{ p.nationality }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
+    <!-- Trip Summary -->
+    <div class="confirmation-section">
+      <div class="section-title">
+        <h3>Trip Summary</h3>
+      </div>
+
+      <!-- Outbound -->
+      <div class="flight-detail-card">
+        <div class="flight-card-header">
+          <span class="flight-badge outbound-badge">Outbound</span>
+          {% if outbound.airline_name %}
+          <div class="airline-info">
+            <span class="airline-name">{{ outbound.airline_name }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="flight-route">
+          <div class="route-point">
+            <div class="route-time">{{ outbound.departure | time12 }}</div>
+            <div class="route-city">{{ origin_city }}</div>
+            <div class="route-code">{{ outbound.origin }}</div>
+            <div class="route-date">{{ outbound.departure | date_compact }}</div>
+          </div>
+          <div class="route-middle">
+            <div class="route-arrow">→</div>
+            <div class="trip-duration">{{ outbound.duration }}</div>
+          </div>
+          <div class="route-point">
+            <div class="route-time">{{ outbound.arrival | time12 }}</div>
+            <div class="route-city">{{ destination_city }}</div>
+            <div class="route-code">{{ outbound.destination }}</div>
+            <div class="route-date">{{ outbound.arrival | date_compact }}</div>
+          </div>
+        </div>
+
+        <div class="flight-meta-details">
+          <div class="meta-item">
+            <div class="meta-label">Cabin</div>
+            <div class="meta-value">{{ cabin_out }}</div>
+          </div>
+          {% if outbound.stops_text %}
+          <div class="meta-item">
+            <div class="meta-label">Stops</div>
+            <div class="meta-value">{{ outbound.stops_text }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if return_flight %}
+      <!-- Return -->
+      <div class="flight-detail-card">
+        <div class="flight-card-header">
+          <span class="flight-badge return-badge">Return</span>
+          {% if return_flight.airline_name %}
+          <div class="airline-info">
+            <span class="airline-name">{{ return_flight.airline_name }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="flight-route">
+          <div class="route-point">
+            <div class="route-time">{{ return_flight.departure | time12 }}</div>
+            <div class="route-city">{{ destination_city }}</div>
+            <div class="route-code">{{ return_flight.origin }}</div>
+            <div class="route-date">{{ return_flight.departure | date_compact }}</div>
+          </div>
+          <div class="route-middle">
+            <div class="route-arrow">→</div>
+            <div class="trip-duration">{{ return_flight.duration }}</div>
+          </div>
+          <div class="route-point">
+            <div class="route-time">{{ return_flight.arrival | time12 }}</div>
+            <div class="route-city">{{ origin_city }}</div>
+            <div class="route-code">{{ return_flight.destination }}</div>
+            <div class="route-date">{{ return_flight.arrival | date_compact }}</div>
+          </div>
+        </div>
+
+        <div class="flight-meta-details">
+          <div class="meta-item">
+            <div class="meta-label">Cabin</div>
+            <div class="meta-value">{{ cabin_ret }}</div>
+          </div>
+          {% if return_flight.stops_text %}
+          <div class="meta-item">
+            <div class="meta-label">Stops</div>
+            <div class="meta-value">{{ return_flight.stops_text }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Payment Summary -->
+    <div class="confirmation-section">
+      <div class="section-title">
+        <h3>Payment Summary</h3>
+      </div>
+      <div class="payment-summary">
+        <div class="payment-total">
+          <span>Total Paid</span>
+          <span class="total-amount">${{ total_price }}</span>
+        </div>
+        <p class="payment-note">A receipt has been emailed to {{ email }}.</p>
+      </div>
+    </div>
+
+    <div class="confirmation-actions">
+      <button class="btn-download" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      <a href="{{ url_for('home') }}" class="btn-home">🏠 Back to Home</a>
+    </div>
+    </div>
+  </div>
+
+  <!-- PRINT-ONLY: Raw text/table layout for PDF -->
+  <div class="print-only" style="display:none">
+    <h1>Booking Confirmation</h1>
+    <p>Reference: {{ booking_ref }}</p>
+    <p>Date: {{ now.strftime('%Y-%m-%d') }} | Time: {{ now.strftime('%H:%M') }}</p>
+
+    <h2>Traveller</h2>
+    <table>
+      <tr>
+        <th>Passenger Name</th>
+        <td>{{ passenger_name }}</td>
+      </tr>
+      <tr>
+        <th>Email</th>
+        <td>{{ email }}</td>
+      </tr>
+      <tr>
+        <th>Phone</th>
+        <td>{{ phone }}</td>
+      </tr>
+    </table>
+
+    {% if passenger_details and passenger_details|length > 0 %}
+    <h3>Passenger List</h3>
+    <table>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Nationality</th>
+      </tr>
+      {% for p in passenger_details %}
+      <tr>
+        <td>{{ p.first_name }} {{ p.last_name }}</td>
+        <td>{{ p.type|capitalize }}</td>
+        <td>{{ p.nationality }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    <h2>Trip - Outbound</h2>
+    <table>
+      <tr>
+        <th>From</th>
+        <td>{{ origin_city }} ({{ outbound.origin }})</td>
+      </tr>
+      <tr>
+        <th>To</th>
+        <td>{{ destination_city }} ({{ outbound.destination }})</td>
+      </tr>
+      <tr>
+        <th>Departure</th>
+        <td>{{ outbound.departure | date_compact }} {{ outbound.departure | time12 }}</td>
+      </tr>
+      <tr>
+        <th>Arrival</th>
+        <td>{{ outbound.arrival | date_compact }} {{ outbound.arrival | time12 }}</td>
+      </tr>
+      <tr>
+        <th>Duration</th>
+        <td>{{ outbound.duration }}</td>
+      </tr>
+      <tr>
+        <th>Cabin</th>
+        <td>{{ cabin_out }}</td>
+      </tr>
+      {% if outbound.stops_text %}
+      <tr>
+        <th>Stops</th>
+        <td>{{ outbound.stops_text }}</td>
+      </tr>
+      {% endif %}
+    </table>
+
+    {% if return_flight %}
+    <h2>Trip - Return</h2>
+    <table>
+      <tr>
+        <th>From</th>
+        <td>{{ destination_city }} ({{ return_flight.origin }})</td>
+      </tr>
+      <tr>
+        <th>To</th>
+        <td>{{ origin_city }} ({{ return_flight.destination }})</td>
+      </tr>
+      <tr>
+        <th>Departure</th>
+        <td>{{ return_flight.departure | date_compact }} {{ return_flight.departure | time12 }}</td>
+      </tr>
+      <tr>
+        <th>Arrival</th>
+        <td>{{ return_flight.arrival | date_compact }} {{ return_flight.arrival | time12 }}</td>
+      </tr>
+      <tr>
+        <th>Duration</th>
+        <td>{{ return_flight.duration }}</td>
+      </tr>
+      <tr>
+        <th>Cabin</th>
+        <td>{{ cabin_ret }}</td>
+      </tr>
+      {% if return_flight.stops_text %}
+      <tr>
+        <th>Stops</th>
+        <td>{{ return_flight.stops_text }}</td>
+      </tr>
+      {% endif %}
+    </table>
+    {% endif %}
+
+    <h2>Payment</h2>
+    <table>
+      <tr>
+        <th>Total Paid</th>
+        <td>${{ total_price }}</td>
+      </tr>
+    </table>
   </div>
 </section>
-
-<style>
-/* =========================================================================
-   CONFIRMATION PAGE - ENHANCED MODERN DESIGN
-   ========================================================================= */
-
-/* Main Confirmation Wrapper */
-.confirmation-wrapper {
-  background: #ffffff;
-  padding: 2rem;
-  min-height: 100vh;
-}
-
-/* Success Banner */
-.success-banner {
-  text-align: center;
-  padding: 3rem 2rem;
-  margin-bottom: 2rem;
-  background: linear-gradient(135deg, rgba(0, 119, 182, 0.1), rgba(72, 202, 228, 0.1));
-  border-radius: 20px;
-  border: 2px solid rgba(0, 119, 182, 0.3);
-  animation: successPulse 2s ease-in-out infinite;
-}
-
-@keyframes successPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 119, 182, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(0, 119, 182, 0.5); }
-}
-
-.success-icon {
-  margin-bottom: 1.5rem;
-  animation: scaleIn 0.6s ease-out;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.success-banner h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  color: #1a1a1a;
-  margin-bottom: 1rem;
-  font-weight: 800;
-  text-shadow: 0 0 30px rgba(0, 119, 182, 0.3);
-  animation: slideDown 0.6s ease-out 0.2s backwards;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-30px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.success-message {
-  font-size: 1.2rem;
-  color: #666;
-  margin: 0;
-  animation: fadeIn 0.6s ease-out 0.4s backwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Screen styles - Modern and Professional */
-@media screen {
-  .invoice-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    background: #ffffff;
-    backdrop-filter: blur(20px);
-    padding: 3rem;
-    border-radius: 24px;
-    box-shadow: 0 10px 60px rgba(0, 0, 0, 0.1);
-    border: 2px solid #e0e0e0;
-    animation: slideUp 0.6s ease-out;
-  }
-  
-  @keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  
-  .invoice-header {
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
-    border-bottom: 2px solid #f0f0f0;
-  }
-  
-  .invoice-title-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .invoice-title-section h2 {
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    color: #1a1a1a;
-    margin: 0;
-    font-weight: 700;
-    background: linear-gradient(135deg, #0077b6, #48cae4);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 119, 182, 0.15));
-    border: 2px solid rgba(0, 119, 182, 0.4);
-    border-radius: 50px;
-    color: #0077b6;
-    font-weight: 700;
-    font-size: 0.9rem;
-    letter-spacing: 1px;
-    animation: glow 2s ease-in-out infinite;
-  }
-  
-  @keyframes glow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0, 119, 182, 0.2); }
-    50% { box-shadow: 0 0 20px rgba(0, 119, 182, 0.3); }
-  }
-  
-  .status-dot {
-    width: 10px;
-    height: 10px;
-    background: #0077b6;
-    border-radius: 50%;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.2); }
-  }
-  
-  .invoice-meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 12px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-  }
-  
-  .meta-item:hover {
-    background: rgba(0, 119, 182, 0.05);
-    border-color: rgba(0, 119, 182, 0.3);
-    transform: translateY(-2px);
-  }
-  
-  .meta-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 600;
-  }
-  
-  .meta-value {
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    font-weight: 700;
-  }
-  
-  .invoice-body {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: 2.5rem;
-    margin-bottom: 2.5rem;
-  }
-  
-  .invoice-section {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: #f8f9fa;
-    border-radius: 16px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-  }
-  
-  .invoice-section:hover {
-    background: rgba(0, 119, 182, 0.03);
-    border-color: rgba(0, 119, 182, 0.2);
-    transform: translateY(-2px);
-  }
-  
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #e0e0e0;
-  }
-  
-  .section-icon {
-    font-size: 1.5rem;
-    color: #0077b6;
-  }
-  
-  .section-header h3 {
-    font-size: 1.1rem;
-    margin: 0;
-    color: #0077b6;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  
-  /* Traveller Section */
-  .info-grid {
-    display: grid;
-    gap: 1rem;
-  }
-  
-  .info-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-  }
-  
-  .info-item:hover {
-    background: rgba(0, 119, 182, 0.05);
-    border-color: rgba(0, 119, 182, 0.3);
-  }
-  
-  .info-icon {
-    font-size: 1.5rem;
-    min-width: 40px;
-    text-align: center;
-  }
-  
-  .info-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    flex: 1;
-  }
-  
-  .info-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 600;
-  }
-  
-  .info-value {
-    font-size: 1rem;
-    color: #1a1a1a;
-    font-weight: 600;
-  }
-  
-  /* Flight Details Card */
-  .flight-details-card {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  
-  .airline-info {
-    text-align: center;
-  }
-  
-  .airline-badge {
-    display: inline-block;
-    padding: 0.5rem 1.5rem;
-    background: linear-gradient(135deg, #0077b6, #0096c7);
-    color: #ffffff;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-  
-  .route-visual {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(0, 119, 182, 0.05), rgba(72, 202, 228, 0.05));
-    border-radius: 12px;
-    gap: 1rem;
-  }
-  
-  .route-point {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  
-  .location-dot {
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(135deg, #0077b6, #48cae4);
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(0, 119, 182, 0.6);
-  }
-  
-  .location-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .city-name {
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    font-weight: 700;
-  }
-  
-  .airport-code {
-    font-size: 0.9rem;
-    color: #0077b6;
-    font-weight: 600;
-  }
-  
-  .route-line {
-    flex: 1;
-    height: 2px;
-    background: linear-gradient(90deg, #0077b6, #48cae4);
-    position: relative;
-  }
-  
-  .plane-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.5rem;
-    animation: flyPlane 3s ease-in-out infinite;
-  }
-  
-  @keyframes flyPlane {
-    0%, 100% { left: 20%; }
-    50% { left: 80%; }
-  }
-  
-  .flight-time-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-  
-  .time-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-  }
-  
-  .time-item.full-width {
-    grid-column: 1 / -1;
-  }
-  
-  .time-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 600;
-  }
-  
-  .time-value {
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    font-weight: 700;
-  }
-  
-  .date-value {
-    font-size: 0.9rem;
-    color: #0077b6;
-    font-weight: 600;
-  }
-  
-  /* Fare Section */
-  .fare-details {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .fare-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 0;
-  }
-  
-  .fare-label {
-    font-size: 1rem;
-    color: #666;
-    font-weight: 600;
-  }
-  
-  .fare-amount {
-    font-size: 1.1rem;
-    color: #1a1a1a;
-    font-weight: 700;
-  }
-  
-  .fare-divider {
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 119, 182, 0.3), transparent);
-    margin: 0.5rem 0;
-  }
-  
-  .total-fare {
-    padding-top: 1rem;
-    border-top: 2px solid rgba(0, 119, 182, 0.3);
-  }
-  
-  .total-fare .fare-label {
-    font-size: 1.2rem;
-    color: #0077b6;
-  }
-  
-  .total-fare .fare-amount {
-    font-size: 1.8rem;
-    color: #0077b6;
-    text-shadow: 0 0 20px rgba(0, 119, 182, 0.3);
-  }
-  
-  /* Baggage Section */
-  .baggage-items {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .baggage-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-  }
-  
-  .baggage-item:hover {
-    background: rgba(0, 119, 182, 0.05);
-    border-color: rgba(0, 119, 182, 0.3);
-  }
-  
-  .baggage-icon {
-    font-size: 2rem;
-  }
-  
-  .baggage-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .baggage-type {
-    font-size: 1rem;
-    color: #1a1a1a;
-    font-weight: 600;
-  }
-  
-  .baggage-weight {
-    font-size: 0.9rem;
-    color: #0077b6;
-    font-weight: 600;
-  }
-  
-  /* Support Section */
-  .support-items {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .support-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-  }
-  
-  .support-item:hover {
-    background: rgba(0, 119, 182, 0.05);
-    border-color: rgba(0, 119, 182, 0.3);
-  }
-  
-  .support-icon {
-    font-size: 1.5rem;
-    min-width: 40px;
-    text-align: center;
-  }
-  
-  .support-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .support-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 600;
-  }
-  
-  .support-value {
-    font-size: 0.95rem;
-    color: #1a1a1a;
-    font-weight: 600;
-  }
-  
-  /* Important Notes */
-  .important-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .important-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: rgba(0, 119, 182, 0.05);
-    border-radius: 8px;
-    border-left: 3px solid #48cae4;
-  }
-  
-  .check-icon {
-    color: #48cae4;
-    font-weight: 700;
-    font-size: 1.2rem;
-    min-width: 20px;
-  }
-  
-  .important-list li span:last-child {
-    color: #333;
-    line-height: 1.5;
-  }
-  
-  /* Footer Actions */
-  .invoice-footer {
-    display: flex;
-    gap: 1.5rem;
-    justify-content: center;
-    padding-top: 2rem;
-    border-top: 2px solid #e0e0e0;
-  }
-  
-  .btn-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2.5rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    border: none;
-    letter-spacing: 0.5px;
-  }
-  
-  .btn-icon {
-    font-size: 1.3rem;
-  }
-  
-  .btn-print {
-    background: linear-gradient(135deg, #0077b6, #0096c7);
-    color: #ffffff;
-    box-shadow: 0 4px 20px rgba(0, 119, 182, 0.4);
-  }
-  
-  .btn-print:hover {
-    background: linear-gradient(135deg, #0096c7, #00b4d8);
-    transform: translateY(-3px);
-    box-shadow: 0 6px 30px rgba(0, 119, 182, 0.6);
-  }
-  
-  .btn-home {
-    background: #ffffff;
-    color: #0077b6;
-    border: 2px solid #0077b6;
-    box-shadow: 0 4px 20px rgba(0, 119, 182, 0.2);
-  }
-  
-  .btn-home:hover {
-    background: #0077b6;
-    color: #ffffff;
-    border-color: #0077b6;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 30px rgba(0, 119, 182, 0.4);
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 1024px) {
-    .invoice-body {
-      grid-template-columns: 1fr;
-      gap: 2rem;
-    }
-    
-    .invoice-right {
-      order: 2;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .confirmation-wrapper {
-      padding: 1rem;
-    }
-    
-    .invoice-container {
-      padding: 2rem 1.5rem;
-    }
-    
-    .success-banner {
-      padding: 2rem 1rem;
-    }
-    
-    .invoice-meta {
-      grid-template-columns: 1fr;
-    }
-    
-    .route-visual {
-      flex-direction: column;
-      text-align: center;
-    }
-    
-    .route-line {
-      width: 2px;
-      height: 50px;
-      transform: rotate(90deg);
-    }
-    
-    .invoice-footer {
-      flex-direction: column;
-    }
-    
-    .btn-action {
-      width: 100%;
-      justify-content: center;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .invoice-container {
-      padding: 1.5rem 1rem;
-    }
-    
-    .invoice-section {
-      padding: 1rem;
-    }
-    
-    .flight-time-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-
-/* Print-specific styles - Premium Professional Invoice Design */
-@media print {
-  * { 
-    margin: 0; 
-    padding: 0; 
-    box-sizing: border-box;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  body { 
-    background: white !important; 
-    color: #2c3e50 !important; 
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 9pt;
-    line-height: 1.3;
-  }
-  
-  .nav-container, .invoice-footer, nav, footer, .success-banner { 
-    display: none !important; 
-  }
-  
-  @page { 
-    size: A4; 
-    margin: 6mm;
-  }
-  
-  .results-page, .confirmation-wrapper { 
-    background: white !important; 
-    padding: 0 !important; 
-    margin: 0 !important;
-  }
-  
-  .invoice-container {
-    background: white !important;
-    padding: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    border: none !important;
-    margin: 0 !important;
-  }
-  
-  /* Premium Header with Dark Top Bar */
-  .invoice-header {
-    margin-bottom: 8px;
-    padding: 0 !important;
-    border: none !important;
-    background: white !important;
-  }
-  
-  .invoice-title-section {
-    background: linear-gradient(135deg, #1a1a2e 0%, #2c3e50 100%) !important;
-    padding: 12px 15px !important;
-    margin: 0 0 8px 0 !important;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 15px;
-  }
-  
-  .invoice-title-section h2 {
-    font-size: 18pt !important;
-    color: white !important;
-    -webkit-text-fill-color: white !important;
-    font-weight: 800 !important;
-    margin: 0 !important;
-    letter-spacing: 0.5px;
-  }
-  
-  .status-badge {
-    color: #1a1a2e !important;
-    border: none !important;
-    background: linear-gradient(135deg, #00d4ff 0%, #48cae4 100%) !important;
-    padding: 6px 15px !important;
-    border-radius: 20px !important;
-    font-weight: 800 !important;
-    font-size: 8pt !important;
-    display: inline-flex !important;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .status-dot {
-    width: 7px !important;
-    height: 7px !important;
-    background: #1a1a2e !important;
-    border-radius: 50% !important;
-    display: inline-block !important;
-  }
-  
-  /* Metadata Cards - Compact */
-  .invoice-meta {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-    margin-bottom: 8px !important;
-  }
-  
-  .meta-item {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    border: none !important;
-    padding: 6px 10px !important;
-    border-radius: 5px !important;
-    border-left: 3px solid #00d4ff !important;
-  }
-  
-  .meta-label {
-    color: #6c757d !important;
-    font-size: 7pt !important;
-    display: block !important;
-    margin-bottom: 2px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .meta-value {
-    color: #1a1a2e !important;
-    font-size: 9pt !important;
-    font-weight: 700 !important;
-    display: block !important;
-  }
-  
-  /* Body Layout - Optimized Two Column */
-  .invoice-body {
-    display: grid !important;
-    grid-template-columns: 1.5fr 1fr !important;
-    gap: 8px !important;
-    margin-bottom: 0 !important;
-  }
-  
-  /* Modern Card Sections - Compact */
-  .invoice-section {
-    margin-bottom: 6px !important;
-    padding: 0 !important;
-    background: white !important;
-    border: 1px solid #dee2e6 !important;
-    border-radius: 5px !important;
-    overflow: hidden !important;
-    page-break-inside: avoid;
-  }
-  
-  .section-header {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
-    color: white !important;
-    padding: 6px 10px !important;
-    margin: 0 !important;
-    border: none !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-  }
-  
-  .section-icon {
-    display: none !important;
-  }
-  
-  .section-header h3 {
-    font-size: 8.5pt !important;
-    color: white !important;
-    margin: 0 !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-  
-  /* Traveller Info - Clean Table Style */
-  .info-grid {
-    display: table !important;
-    width: 100% !important;
-    border-collapse: collapse !important;
-  }
-  
-  .info-item {
-    display: table-row !important;
-    background: white !important;
-    border: none !important;
-  }
-  
-  .info-item:nth-child(even) {
-    background: #f8f9fa !important;
-  }
-  
-  .info-icon {
-    display: none !important;
-  }
-  
-  .info-content {
-    display: table-row !important;
-  }
-  
-  .info-label {
-    display: table-cell !important;
-    color: #6c757d !important;
-    font-size: 8pt !important;
-    font-weight: 700 !important;
-    padding: 5px 10px !important;
-    width: 35% !important;
-    border-bottom: 1px solid #e9ecef !important;
-  }
-  
-  .info-value {
-    display: table-cell !important;
-    color: #2c3e50 !important;
-    font-size: 8.5pt !important;
-    font-weight: 600 !important;
-    padding: 5px 10px !important;
-    border-bottom: 1px solid #e9ecef !important;
-  }
-  
-  /* Flight Details - Premium Design - Compact */
-  .flight-details-card {
-    padding: 8px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-  }
-  
-  .airline-info {
-    text-align: center !important;
-    margin-bottom: 3px !important;
-  }
-  
-  .airline-badge {
-    display: inline-block !important;
-    padding: 4px 15px !important;
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
-    color: white !important;
-    border-radius: 15px !important;
-    font-weight: 700 !important;
-    font-size: 8pt !important;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  /* Route Visual - Modern Timeline - Compact */
-  .route-visual {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    border: 2px solid #00d4ff !important;
-    padding: 10px 8px !important;
-    border-radius: 6px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-  }
-  
-  .route-point {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 4px !important;
-  }
-  
-  .location-dot {
-    width: 12px !important;
-    height: 12px !important;
-    background: linear-gradient(135deg, #00d4ff 0%, #48cae4 100%) !important;
-    border-radius: 50% !important;
-    border: 2px solid white !important;
-    box-shadow: 0 0 0 2px #00d4ff !important;
-  }
-  
-  .location-info {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-    text-align: center !important;
-  }
-  
-  .city-name {
-    font-size: 9.5pt !important;
-    color: #1a1a2e !important;
-    font-weight: 800 !important;
-  }
-  
-  .airport-code {
-    font-size: 7.5pt !important;
-    color: white !important;
-    font-weight: 700 !important;
-    background: #2c3e50 !important;
-    padding: 2px 8px !important;
-    border-radius: 10px !important;
-    display: inline-block !important;
-  }
-  
-  .route-line {
-    flex: 1 !important;
-    height: 2px !important;
-    background: linear-gradient(90deg, #00d4ff 0%, #48cae4 100%) !important;
-    margin: 0 10px !important;
-    position: relative !important;
-  }
-  
-  .route-line::before {
-    content: '✈' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    font-size: 10pt !important;
-    background: white !important;
-    padding: 0 5px !important;
-    color: #2c3e50 !important;
-  }
-  
-  .plane-icon {
-    display: none !important;
-  }
-  
-  /* Flight Time Grid - Modern Card Layout - Compact */
-  .flight-time-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 5px !important;
-  }
-  
-  .time-item {
-    background: #f8f9fa !important;
-    border: none !important;
-    border-left: 2px solid #00d4ff !important;
-    border-radius: 4px !important;
-    padding: 5px 8px !important;
-  }
-  
-  .time-item.full-width {
-    grid-column: 1 / -1 !important;
-    border-left-color: #48cae4 !important;
-  }
-  
-  .time-label {
-    color: #6c757d !important;
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    display: block !important;
-    margin-bottom: 2px !important;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-  }
-  
-  .time-value {
-    color: #1a1a2e !important;
-    font-size: 9pt !important;
-    font-weight: 700 !important;
-    display: block !important;
-  }
-  
-  .date-value {
-    color: #495057 !important;
-    font-size: 7.5pt !important;
-    font-weight: 600 !important;
-    display: block !important;
-    margin-top: 1px !important;
-  }
-  
-  /* Fare Section - Premium Pricing Design - Compact */
-  .fare-section {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    border: 2px solid #00d4ff !important;
-  }
-  
-  .fare-details {
-    padding: 8px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-  }
-  
-  .fare-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 4px 0 !important;
-  }
-  
-  .fare-label {
-    font-size: 8pt !important;
-    color: #495057 !important;
-    font-weight: 700 !important;
-  }
-  
-  .fare-amount {
-    font-size: 8.5pt !important;
-    color: #1a1a2e !important;
-    font-weight: 700 !important;
-  }
-  
-  .fare-divider {
-    height: 1.5px !important;
-    background: linear-gradient(90deg, transparent, #00d4ff, transparent) !important;
-    margin: 3px 0 !important;
-  }
-  
-  .total-fare {
-    padding: 8px !important;
-    border-top: none !important;
-    background: linear-gradient(135deg, #1a1a2e 0%, #2c3e50 100%) !important;
-    margin: 5px -8px -8px -8px !important;
-    border-radius: 0 0 3px 3px !important;
-  }
-  
-  .total-fare .fare-label {
-    font-size: 9pt !important;
-    color: white !important;
-    font-weight: 800 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .total-fare .fare-amount {
-    font-size: 14pt !important;
-    color: #48cae4 !important;
-    font-weight: 800 !important;
-  }
-  
-  /* Baggage Section - Icon-Free Design - Compact */
-  .baggage-items {
-    padding: 8px !important;
-    display: grid !important;
-    gap: 4px !important;
-  }
-  
-  .baggage-item {
-    background: #f8f9fa !important;
-    border: none !important;
-    border-left: 2px solid #00d4ff !important;
-    border-radius: 4px !important;
-    padding: 5px 8px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-  }
-  
-  .baggage-icon {
-    display: none !important;
-  }
-  
-  .baggage-info {
-    display: contents !important;
-  }
-  
-  .baggage-type {
-    font-size: 8pt !important;
-    color: #495057 !important;
-    font-weight: 700 !important;
-  }
-  
-  .baggage-weight {
-    font-size: 8.5pt !important;
-    color: #1a1a2e !important;
-    font-weight: 700 !important;
-  }
-  
-  /* Support Section - Contact Cards - Compact */
-  .support-items {
-    padding: 8px !important;
-    display: grid !important;
-    gap: 4px !important;
-  }
-  
-  .support-item {
-    background: #f8f9fa !important;
-    border: none !important;
-    border-radius: 4px !important;
-    padding: 5px 8px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-  }
-  
-  .support-icon {
-    display: none !important;
-  }
-  
-  .support-info {
-    display: contents !important;
-  }
-  
-  .support-label {
-    color: #6c757d !important;
-    font-size: 7pt !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-  }
-  
-  .support-value {
-    color: #1a1a2e !important;
-    font-size: 8pt !important;
-    font-weight: 700 !important;
-  }
-  
-  /* Important Notes - Alert Style - Compact */
-  .important-section {
-    background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%) !important;
-    border: 2px solid #ffc107 !important;
-  }
-  
-  .important-list {
-    padding: 8px !important;
-    list-style: none !important;
-    margin: 0 !important;
-    display: grid !important;
-    gap: 3px !important;
-  }
-  
-  .important-list li {
-    background: white !important;
-    border-left: 3px solid #ffc107 !important;
-    padding: 4px 8px !important;
-    border-radius: 3px !important;
-    display: flex !important;
-    align-items: flex-start !important;
-    gap: 5px !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important;
-  }
-  
-  .check-icon {
-    color: #28a745 !important;
-    font-weight: 800 !important;
-    font-size: 9pt !important;
-    min-width: 12px !important;
-  }
-  
-  .important-list li span:last-child {
-    color: #495057 !important;
-    font-size: 7.5pt !important;
-    line-height: 1.3 !important;
-    font-weight: 600 !important;
-  }
-  
-  /* Page break control */
-  .invoice-left, .invoice-right {
-    page-break-inside: avoid;
-  }
-  
-  .flight-section {
-    page-break-inside: avoid;
-  }
-  
-  /* Compact Footer branding */
-  .invoice-container::after {
-    content: 'Thank you for choosing our service • support@flightbooking.com' !important;
-    display: block !important;
-    text-align: center !important;
-    padding: 8px 0 2px 0 !important;
-    margin-top: 8px !important;
-    border-top: 1.5px solid #dee2e6 !important;
-    color: #6c757d !important;
-    font-size: 7pt !important;
-    font-weight: 600 !important;
-  }
-}
-</style>
-
 {% endblock %}
