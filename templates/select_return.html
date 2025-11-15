@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+{% block title %}Select Return Flight{% endblock %}
+
+{% block content %}
+<div class="flight-results-page">
+    <div class="flight-results-layout">
+        <!-- Sidebar -->
+        <aside class="filters-sidebar">
+            <div class="time-remaining-box">
+                <h4>Time Remaining</h4>
+                <div id="searchTimer" class="search-timer" aria-live="polite">15:00</div>
+            </div>
+            <fieldset class="stops-filter">
+                <legend>Stops</legend>
+                <label class="radio"><input type="radio" name="stops" value="all" checked><span>All</span></label>
+                <label class="radio"><input type="radio" name="stops" value="Direct"><span>Direct</span></label>
+                <label class="radio"><input type="radio" name="stops" value="1 Stop"><span>1 Stop</span></label>
+            </fieldset>
+            <div class="price-range">
+                <div class="price-head"><h4>Price Range</h4><div class="price-values"><span id="priceMin">$0</span><span id="priceMax">$0</span></div></div>
+                <input type="range" id="priceSlider" min="0" max="0" value="0" step="1" />
+            </div>
+        </aside>
+
+        <main class="results-main">
+            <h2 style="text-align: center; color: #00c8ff; margin-bottom: 2rem;">Select Return Flight — {{ destination }} → {{ origin }}</h2>
+
+            {% if not return_flights or return_flights|length == 0 %}
+                <p style="text-align: center;">No return flights available for the selected date. <a href="/search?origin={{ origin }}&destination={{ destination }}&date={{ return_date }}&trip_type=roundtrip&return_date={{ return_date }}">Try a different day</a>.</p>
+            {% else %}
+                <!-- Sorting Bar -->
+                <div class="sorting-bar" role="group" aria-label="Sort flights">
+                    <button type="button" class="sort-btn active" data-sort="asc">Lowest to Higher</button>
+                    <button type="button" class="sort-btn" data-sort="desc">Highest to Lower</button>
+                </div>
+
+                <div id="flightsList" class="flights-list" aria-live="polite">
+                    {% for r in return_flights %}
+                    {% set lowest_price = r.fares_by_cabin.values() | map(attribute=0) | map(attribute='price') | min %}
+                    <article class="flight-card" data-price="{{ lowest_price }}" data-stops="{{ r.stops_text }}" data-flight='{{ r | tojson | safe }}'>
+                        <div class="card-grid">
+                            <div class="card-main">
+                                <div class="rail-itinerary" aria-label="Departure and arrival summary">
+                                    <div class="rail-side origin">
+                                        <div class="code">{{ r.origin }}</div>
+                                        <div class="time">{{ r.departure[11:16] if r.departure else r.depart_time }}</div>
+                                        <div class="airport">{{ AIRPORTS.get(r.origin, {}).get('city', '') }} ({{ r.origin }})</div>
+                                    </div>
+                                    <div class="rail-center" aria-hidden="true">
+                                        <div class="rail-line"><span class="dot"></span><span class="bar"></span><span class="dot"></span></div>
+                                        <div class="meta">{{ r.duration }} • {{ r.stops_text }}</div>
+                                    </div>
+                                    <div class="rail-side destination">
+                                        <div class="code">{{ r.destination }}</div>
+                                        <div class="time">{{ r.arrival[11:16] if r.arrival else r.arrive_time }}</div>
+                                        <div class="airport">{{ AIRPORTS.get(r.destination, {}).get('city', '') }} ({{ r.destination }})
+                                            {% if r.departure and r.arrival and r.departure[0:10] != r.arrival[0:10] %}
+                                                <span class="next-day" title="Arrives different day">+1d</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="airline-meta">
+                                    <div class="airline-row">{% if r.airline_logo %}<img src="{{ r.airline_logo }}" alt="{{ r.airline_name }}" class="airline-icon">{% endif %}<span class="airline-name">{{ r.airline_name }}</span></div>
+                                    <div class="flight-number">Offer #{{ r.offer_id }}</div>
+                                    <div class="route-text">{{ r.origin }}–{{ r.destination }}</div>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <div class="price-line">From <strong class="price-amount">USD {{ '%.2f'|format(lowest_price) }}</strong></div>
+                                <button type="button" class="details-toggle-btn" aria-expanded="false" aria-controls="details-{{ loop.index }}">Details</button>
+                                <button type="button" class="select-flight-btn" data-flight-index="{{ loop.index }}" data-flight='{{ r | tojson | safe }}'>Select Return</button>
+                            </div>
+                        </div>
+                        <div class="flight-card-details" id="details-{{ loop.index }}" hidden>
+                            <div class="details-inner">
+                                <div class="details-header-row">
+                                    <span class="details-title">Flight Details</span>
+                                    <span class="details-duration"><strong>Duration:</strong> {{ r.duration }}</span>
+                                    <span class="details-stops"><strong>Stops:</strong> {{ r.stops_text }}</span>
+                                </div>
+                                {% if r.segments %}
+                                <ul class="segment-breakdown">
+                                    {% for seg in r.segments %}
+                                    <li class="segment-row">
+                                        <div class="seg-times">
+                                            <span class="seg-dep">
+                                                <strong>{{ seg.origin }}</strong>
+                                                <span class="seg-city" data-code="{{ seg.origin }}"></span>
+                                                {{ seg.departure }}
+                                            </span>
+                                            <span class="seg-arrow">→</span>
+                                            <span class="seg-arr">
+                                                <strong>{{ seg.destination }}</strong>
+                                                <span class="seg-city" data-code="{{ seg.destination }}"></span>
+                                                {{ seg.arrival }}
+                                            </span>
+                                        </div>
+                                        <div class="seg-meta">
+                                            {% if seg.duration %}<span class="seg-leg-dur">{{ seg.duration }}</span>{% endif %}
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                                <div class="details-footer-row">
+                                    <span class="detail-note">All times local • Prices subject to availability</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<!-- Cabin Selection Modal -->
+<div id="cabinModal" class="cabin-modal" hidden>
+    <div class="cabin-modal-overlay"></div>
+    <div class="cabin-modal-content">
+        <div class="cabin-modal-header">
+            <h2>Select Cabin Class</h2>
+            <button class="cabin-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="cabin-modal-body">
+            <p class="cabin-instruction">Choose your preferred cabin class for the return flight:</p>
+            <div id="cabinOptions" class="cabin-options"></div>
+        </div>
+        <form id="cabinSelectionForm" method="POST" action="/flight_summary" hidden>
+            <input type="hidden" name="outbound_json" value='{{ outbound_json }}'>
+            <input type="hidden" name="return_json" id="selectedReturnJson" value=''>
+            <input type="hidden" name="cabin_out" value="{{ cabin_out }}">
+            <input type="hidden" name="cabin_ret" id="selectedCabinRet" value="">
+        </form>
+    </div>
+</div>
+
+<div id="flightModal" class="flight-modal" hidden>
+    <div class="flight-modal-content">
+        <button class="flight-close-btn" aria-label="Close">&times;</button>
+        <div id="flightModalBody"></div>
+    </div>
+</div>
+
+<script>
+    window.AIRPORTS = {{ AIRPORTS | tojson | safe }};
+    window.COUNTRY_NAMES = {{ COUNTRY_NAMES | tojson | safe }};
+    
+    const timerEl = document.getElementById('searchTimer'); 
+    let remaining = 15*60; 
+    setInterval(()=>{ 
+        if(remaining<0) return; 
+        remaining--; 
+        const m=String(Math.floor(remaining/60)).padStart(2,'0'); 
+        const s=String(remaining%60).padStart(2,'0'); 
+        timerEl.textContent=`${m}:${s}`; 
+    },1000);
+    
+    const cards=[...document.querySelectorAll('.flight-card')]; 
+    const prices=cards.map(c=>Number(c.dataset.price)); 
+    const priceSlider=document.getElementById('priceSlider'); 
+    const priceMinEl=document.getElementById('priceMin'); 
+    const priceMaxEl=document.getElementById('priceMax'); 
+    
+    if(prices.length){ 
+        const minP=Math.min(...prices); 
+        const maxP=Math.max(...prices); 
+        priceSlider.min=minP; 
+        priceSlider.max=maxP; 
+        priceSlider.value=maxP; 
+        priceMinEl.textContent=`$${minP.toFixed(0)}`; 
+        priceMaxEl.textContent=`$${maxP.toFixed(0)}`; 
+    }
+    
+    function applyFilters(){ 
+        const selStops=document.querySelector('input[name="stops"]:checked').value; 
+        const maxPrice=Number(priceSlider.value); 
+        cards.forEach(card=>{ 
+            const okStops= selStops==='all'|| card.dataset.stops===selStops; 
+            const okPrice= Number(card.dataset.price)<=maxPrice; 
+            card.style.display= okStops && okPrice ? '' : 'none'; 
+        }); 
+    }
+    
+    document.querySelectorAll('input[name="stops"]').forEach(r=>r.addEventListener('change',applyFilters)); 
+    priceSlider.addEventListener('input',applyFilters);
+    
+    document.querySelectorAll('.sort-btn').forEach(btn=>btn.addEventListener('click',()=>{ 
+        document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active')); 
+        btn.classList.add('active'); 
+        const order=btn.dataset.sort; 
+        const sorted=[...cards].sort((a,b)=> order==='asc'? a.dataset.price-b.dataset.price : b.dataset.price-a.dataset.price); 
+        const list=document.getElementById('flightsList'); 
+        sorted.forEach(c=>list.appendChild(c)); 
+    }));
+    
+    document.addEventListener('click',e=>{ 
+        if(e.target.classList.contains('flight-close-btn')){ 
+            document.getElementById('flightModal').setAttribute('hidden',''); 
+        } 
+    });
+    
+    // Details toggle
+    document.querySelectorAll('.details-toggle-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const panel = document.getElementById(btn.getAttribute('aria-controls'));
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            if(expanded){ 
+                panel.setAttribute('hidden',''); 
+                btn.setAttribute('aria-expanded','false'); 
+            }
+            else { 
+                panel.removeAttribute('hidden'); 
+                btn.setAttribute('aria-expanded','true'); 
+            }
+        });
+    });
+    
+    // Populate airport city names in segment details
+    document.querySelectorAll('.seg-city').forEach(el=>{
+        const code = el.dataset.code;
+        const airport = window.AIRPORTS[code];
+        if(airport){
+            const countryCode = airport.country;
+            const countryName = window.COUNTRY_NAMES[countryCode] || countryCode;
+            el.textContent = ` (${airport.city}${countryName ? ', ' + countryName : ''})`;
+        }
+    });
+    
+    // Format dates and times in segment details
+    document.querySelectorAll('.seg-dep, .seg-arr').forEach(el=>{
+        const timeEl = el.childNodes[el.childNodes.length - 1];
+        if(timeEl && timeEl.nodeType === Node.TEXT_NODE){
+            const dateStr = timeEl.textContent.trim();
+            if(dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)){
+                const date = new Date(dateStr);
+                const formatted = date.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                timeEl.textContent = ' ' + formatted;
+            }
+        }
+    });
+    
+    // Cabin Selection Modal Logic
+    const cabinModal = document.getElementById('cabinModal');
+    const cabinCloseBtn = document.querySelector('.cabin-close-btn');
+    const cabinOverlay = document.querySelector('.cabin-modal-overlay');
+    const cabinOptions = document.getElementById('cabinOptions');
+    const cabinSelectionForm = document.getElementById('cabinSelectionForm');
+    const selectedReturnJson = document.getElementById('selectedReturnJson');
+    const selectedCabinRet = document.getElementById('selectedCabinRet');
+    
+    console.log('Cabin modal elements:', {
+        cabinModal,
+        cabinCloseBtn,
+        cabinOverlay,
+        cabinOptions,
+        cabinSelectionForm
+    });
+    
+    // Open cabin modal when "Select Return" is clicked
+    document.querySelectorAll('.select-flight-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Select button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            console.log('Flight data:', flightData);
+            
+            const faresByCabin = flightData.fares_by_cabin || {};
+            console.log('Fares by cabin:', faresByCabin);
+            
+            // Store flight data
+            selectedReturnJson.value = btn.dataset.flight;
+            
+            // Build cabin options
+            cabinOptions.innerHTML = '';
+            const cabinNames = {
+                'ECONOMY': 'Economy',
+                'PREMIUM_ECONOMY': 'Premium Economy',
+                'BUSINESS': 'Business',
+                'FIRST': 'First Class'
+            };
+            
+            const availableCabins = Object.keys(faresByCabin).sort((a, b) => {
+                const order = ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            
+            console.log('Available cabins:', availableCabins);
+            
+            if (availableCabins.length === 0) {
+                cabinOptions.innerHTML = '<p class="no-cabins">No cabin options available for this flight.</p>';
+            } else {
+                availableCabins.forEach(cabin => {
+                    const fares = faresByCabin[cabin];
+                    if (fares && fares.length > 0) {
+                        const fare = fares[0];
+                        const price = fare.price;
+                        
+                        // Cabin details based on class
+                        const cabinDetails = {
+                            'ECONOMY': {
+                                name: 'Economy',
+                                subtitle: 'Standard / Basic',
+                                description: 'Lowest price, minimal amenities',
+                                icon: '💺',
+                                features: ['Standard seat', 'Carry-on included', 'Snacks & beverages', 'Standard boarding'],
+                                seatPitch: '31-32"',
+                                baggage: fare.includedCheckedBags?.quantity || 0,
+                                refundable: false
+                            },
+                            'PREMIUM_ECONOMY': {
+                                name: 'Premium Economy',
+                                subtitle: 'Enhanced Comfort',
+                                description: 'Extra legroom, priority boarding, better meals',
+                                icon: '🪑',
+                                features: ['Extra legroom', 'Priority boarding', 'Enhanced meals', 'More recline', 'Premium beverages'],
+                                seatPitch: '38-40"',
+                                baggage: fare.includedCheckedBags?.quantity || 1,
+                                refundable: false
+                            },
+                            'BUSINESS': {
+                                name: 'Business Class',
+                                subtitle: 'Executive',
+                                description: 'Lie-flat seats, lounge access, premium meals',
+                                icon: '✈️',
+                                features: ['Lie-flat seats', 'Lounge access', 'Premium dining', 'Priority check-in', 'Extra baggage'],
+                                seatPitch: '60-78"',
+                                baggage: fare.includedCheckedBags?.quantity || 2,
+                                refundable: true
+                            },
+                            'FIRST': {
+                                name: 'First Class',
+                                subtitle: 'Suites / Luxury',
+                                description: 'Top-tier luxury, private suites, fine dining',
+                                icon: '👑',
+                                features: ['Private suites', 'Fine dining', 'Premium service', 'Chauffeur service', 'Priority everything'],
+                                seatPitch: '80+"',
+                                baggage: fare.includedCheckedBags?.quantity || 3,
+                                refundable: true
+                            }
+                        };
+                        
+                        const details = cabinDetails[cabin] || cabinDetails['ECONOMY'];
+                        
+                        const cabinCard = document.createElement('div');
+                        cabinCard.className = 'cabin-option';
+                        cabinCard.innerHTML = `
+                            <div class="cabin-icon">${details.icon}</div>
+                            <div class="cabin-info">
+                                <div class="cabin-header">
+                                    <div class="cabin-title-group">
+                                        <h3>${details.name}</h3>
+                                        <span class="cabin-subtitle">${details.subtitle}</span>
+                                    </div>
+                                    <div class="cabin-price-group">
+                                        <div class="cabin-price">$${parseFloat(price).toFixed(2)}</div>
+                                        <span class="cabin-price-label">per person</span>
+                                    </div>
+                                </div>
+                                <p class="cabin-description">${details.description}</p>
+                                <div class="cabin-features">
+                                    ${details.features.map(f => `<span class="feature-tag">✓ ${f}</span>`).join('')}
+                                </div>
+                                <div class="cabin-details-grid">
+                                    <div class="detail-item">
+                                        <span class="detail-icon">�</span>
+                                        <div class="detail-text">
+                                            <span class="detail-label">Checked Bags</span>
+                                            <span class="detail-value baggage-value">${details.baggage} included</span>
+                                        </div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-icon">${details.refundable ? '✅' : '❌'}</span>
+                                        <div class="detail-text">
+                                            <span class="detail-label">Refundable</span>
+                                            <span class="detail-value">${details.refundable ? 'Yes' : 'No'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="cabin-select-btn" data-cabin="${cabin}">
+                                Select ${details.name}
+                            </button>
+                        `;
+                        cabinOptions.appendChild(cabinCard);
+                    }
+                });
+                
+                // Add click handlers to cabin select buttons
+                document.querySelectorAll('.cabin-select-btn').forEach(selectBtn => {
+                    selectBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Cabin selected:', selectBtn.dataset.cabin);
+                        selectedCabinRet.value = selectBtn.dataset.cabin;
+                        cabinSelectionForm.submit();
+                    });
+                });
+            }
+            
+            // Show modal
+            console.log('Showing modal');
+            cabinModal.removeAttribute('hidden');
+            cabinModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        });
+    });
+    
+    // Close modal handlers
+    function closeCabinModal() {
+        console.log('Closing modal');
+        cabinModal.setAttribute('hidden', '');
+        cabinModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    if (cabinCloseBtn) {
+        cabinCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Close button clicked');
+            closeCabinModal();
+        });
+    }
+    
+    if (cabinOverlay) {
+        cabinOverlay.addEventListener('click', (e) => {
+            console.log('Overlay clicked');
+            closeCabinModal();
+        });
+    }
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !cabinModal.hasAttribute('hidden')) {
+            console.log('Escape key pressed');
+            closeCabinModal();
+        }
+    });
+</script>
+{% endblock %}

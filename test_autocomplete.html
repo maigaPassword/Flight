@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Autocomplete</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #03045e 0%, #0077b6 100%);
+            padding: 50px;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+        }
+        .form-field {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        label {
+            display: block;
+            color: #fff;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(3, 4, 94, 0.6);
+            border: 2px solid rgba(72, 202, 228, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #48cae4;
+            box-shadow: 0 0 0 3px rgba(72, 202, 228, 0.2);
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            color: #48cae4;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>✈️ Airport Autocomplete Test</h1>
+        <div class="status" id="status">Loading...</div>
+        
+        <div class="form-field">
+            <label for="origin">From (Origin)</label>
+            <input type="text" id="origin" placeholder="Type city name, airport name, or code..." autocomplete="off">
+        </div>
+        
+        <div class="form-field">
+            <label for="destination">To (Destination)</label>
+            <input type="text" id="destination" placeholder="Type city name, airport name, or code..." autocomplete="off">
+        </div>
+    </div>
+
+    <!-- Load sample airports data -->
+    <script>
+        // Sample airports data for testing
+        window.AIRPORTS = {
+            "CDG": {"name": "Charles de Gaulle Airport", "city": "Paris", "country": "FR", "state": ""},
+            "JFK": {"name": "John F Kennedy International Airport", "city": "New York", "country": "US", "state": "NY"},
+            "LHR": {"name": "London Heathrow Airport", "city": "London", "country": "GB", "state": ""},
+            "NRT": {"name": "Narita International Airport", "city": "Tokyo", "country": "JP", "state": ""},
+            "DXB": {"name": "Dubai International Airport", "city": "Dubai", "country": "AE", "state": ""},
+            "LAX": {"name": "Los Angeles International Airport", "city": "Los Angeles", "country": "US", "state": "CA"},
+            "ORD": {"name": "Chicago O'Hare International Airport", "city": "Chicago", "country": "US", "state": "IL"},
+            "SIN": {"name": "Singapore Changi Airport", "city": "Singapore", "country": "SG", "state": ""},
+            "BCN": {"name": "Barcelona-El Prat Airport", "city": "Barcelona", "country": "ES", "state": ""},
+            "SYD": {"name": "Sydney Kingsford Smith Airport", "city": "Sydney", "country": "AU", "state": ""}
+        };
+        
+        document.getElementById('status').textContent = `✅ Loaded ${Object.keys(window.AIRPORTS).length} airports`;
+    </script>
+    <script src="static/js/script.js"></script>
+</body>
+</html>

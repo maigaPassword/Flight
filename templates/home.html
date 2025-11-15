@@ -1,9 +1,1156 @@
+{#
+    HOME PAGE TEMPLATE
+    ==================
+    The main landing page featuring:
+    - Hero section with full-screen search form
+    - Animated airline partners carousel
+    - Popular destinations grid with clickable cards
+    
+    Author: Group 5
+    Date: 2025
+#}
+
 {% extends 'base.html' %}
 {% block title %}Home{% endblock %}
+{% block body_class %} class="has-hero"{% endblock %}
 {% block content %}
+
+<style>
+/* Return date field - always visible but disabled for one-way */
+#return-date-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    flex: 1 1 200px !important;
+    min-width: 200px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease, filter 0.3s ease !important;
+}
+#return-date-wrapper.visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+#return-date-wrapper:not(.visible) label {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+#return-date-wrapper:not(.visible) input {
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.3) 0%, rgba(0, 119, 182, 0.2) 100%) !important;
+    border-color: rgba(72, 202, 228, 0.15) !important;
+    cursor: not-allowed !important;
+}
+/* Ensure form fields don't overlap */
+.form-field {
+    position: relative !important;
+    z-index: 5 !important;
+}
+.form-field.autocomplete {
+    z-index: 100 !important;
+}
+.form-field.autocomplete:focus-within {
+    z-index: 10000 !important;
+}
+.form-actions {
+    flex: 0 0 auto !important;
+    position: relative !important;
+    z-index: 5 !important;
+}
+
+/* Fix input visibility when typing */
+.form-field input[type="text"] {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #03045e !important;
+    font-weight: 600 !important;
+}
+.form-field input[type="text"]:focus {
+    background: #ffffff !important;
+    color: #03045e !important;
+    border-color: #48cae4 !important;
+    box-shadow: 0 0 0 3px rgba(72, 202, 228, 0.2) !important;
+}
+.form-field input[type="text"]::placeholder {
+    color: rgba(3, 4, 94, 0.5) !important;
+}
+
+/* Enhanced date input styling with better calendar appearance */
+input[type="date"] {
+    color-scheme: dark; /* Makes the calendar dark themed */
+}
+
+/* Style the calendar popup for Chrome/Edge/Safari */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: brightness(0) saturate(100%) invert(70%) sepia(47%) saturate(1000%) hue-rotate(157deg) brightness(95%) contrast(101%);
+}
+
+/* Additional date input enhancements */
+.form-field input[type="date"] {
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.5) 0%, rgba(0, 119, 182, 0.4) 100%) !important;
+    border: 2px solid rgba(72, 202, 228, 0.3) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    font-size: 1.1rem !important;
+    padding: 1.2rem 1.5rem !important;
+}
+
+/* Make the date text inside larger and bolder */
+.form-field input[type="date"]::-webkit-datetime-edit {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 2px !important;
+}
+
+.form-field input[type="date"]::-webkit-datetime-edit-text,
+.form-field input[type="date"]::-webkit-datetime-edit-month-field,
+.form-field input[type="date"]::-webkit-datetime-edit-day-field,
+.form-field input[type="date"]::-webkit-datetime-edit-year-field {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 3px 4px !important;
+    color: #fff !important;
+}
+
+.form-field input[type="date"]:hover {
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.6) 0%, rgba(0, 119, 182, 0.5) 100%) !important;
+    border-color: rgba(72, 202, 228, 0.5) !important;
+    box-shadow: 0 4px 20px rgba(72, 202, 228, 0.2) !important;
+}
+
+.form-field input[type="date"]:focus {
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.7) 0%, rgba(0, 119, 182, 0.6) 100%) !important;
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 0 4px rgba(72, 202, 228, 0.2), 0 8px 25px rgba(72, 202, 228, 0.3) !important;
+}
+
+/* Compact passenger selector for top right */
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.passengers-selector-compact {
+    position: relative;
+}
+
+.passengers-display-compact {
+    padding: 0.5rem 1rem;
+    background: rgba(2, 62, 138, 0.5);
+    border: 1.5px solid rgba(72, 202, 228, 0.25);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.passengers-display-compact:hover {
+    background: rgba(2, 62, 138, 0.7);
+    border-color: rgba(72, 202, 228, 0.4);
+}
+
+.passengers-display-compact svg {
+    width: 16px;
+    height: 16px;
+}
+
+.passengers-dropdown-compact {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: rgba(3, 4, 94, 0.98);
+    border: 1.5px solid rgba(72, 202, 228, 0.3);
+    border-radius: 10px;
+    padding: 0.5rem;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    min-width: 180px;
+}
+
+.passengers-dropdown-compact.show {
+    display: block;
+}
+
+.passenger-type-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(72, 202, 228, 0.1);
+}
+
+.passenger-type-compact:last-child {
+    border-bottom: none;
+}
+
+.passenger-label-compact {
+    color: #fff;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.passenger-controls-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.passenger-btn-compact {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(72, 202, 228, 0.15);
+    border: 1px solid rgba(72, 202, 228, 0.3);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+
+.passenger-btn-compact:hover {
+    background: rgba(72, 202, 228, 0.3);
+    border-color: var(--cyan);
+}
+
+.passenger-btn-compact:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.passenger-count-compact {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Old passenger selector styles - can be removed */
+.passengers-selector {
+    position: relative;
+}
+
+.passengers-display {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: rgba(2, 62, 138, 0.6);
+    border: 2px solid rgba(72, 202, 228, 0.2);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.passengers-display:hover {
+    background: rgba(2, 62, 138, 0.75);
+    border-color: rgba(72, 202, 228, 0.4);
+}
+
+.passengers-display svg {
+    flex-shrink: 0;
+}
+
+.passengers-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.5rem;
+    background: rgba(3, 4, 94, 0.98);
+    border: 2px solid rgba(72, 202, 228, 0.3);
+    border-radius: 12px;
+    padding: 0.75rem;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+.passengers-dropdown.show {
+    display: block;
+}
+
+.passenger-type {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid rgba(72, 202, 228, 0.15);
+}
+
+.passenger-type:last-child {
+    border-bottom: none;
+}
+
+.passenger-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.passenger-label {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.passenger-desc {
+    color: rgba(173, 232, 244, 0.6);
+    font-size: 0.75rem;
+}
+
+.passenger-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.passenger-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(72, 202, 228, 0.15);
+    border: 1.5px solid rgba(72, 202, 228, 0.3);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.passenger-btn:hover {
+    background: rgba(72, 202, 228, 0.3);
+    border-color: var(--cyan);
+    transform: scale(1.05);
+}
+
+.passenger-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: scale(1);
+}
+
+.passenger-count {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.98), rgba(0, 119, 182, 0.98));
+    backdrop-filter: blur(15px);
+    z-index: 99999;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-overlay.active {
+    display: flex !important;
+}
+
+.loading-container {
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.loading-plane {
+    margin: 0 auto 2.5rem;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-plane svg {
+    width: 80px;
+    height: 80px;
+    filter: drop-shadow(0 8px 30px rgba(72, 202, 228, 0.8));
+    stroke: #48cae4;
+    animation: flyPlane 2.5s ease-in-out infinite;
+}
+
+@keyframes flyPlane {
+    0% {
+        transform: translateX(-40px) translateY(10px) rotate(-8deg);
+    }
+    50% {
+        transform: translateX(40px) translateY(-10px) rotate(8deg);
+    }
+    100% {
+        transform: translateX(-40px) translateY(10px) rotate(-8deg);
+    }
+}
+
+.loading-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2rem;
+    letter-spacing: 0.5px;
+    animation: textPulse 2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+}
+
+.loading-spinner {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto;
+    border: 5px solid rgba(72, 202, 228, 0.2);
+    border-top-color: #48cae4;
+    border-right-color: #48cae4;
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+</style>
+
+<!-- ========================================
+     HERO SECTION - Full-screen search area
+     ======================================== -->
 <section class="hero">
-    <h2>Find the Best Flights, Anywhere</h2>
-    <p>Compare airlines and prices instantly.</p>
-    <a href="/search" class="btn">Search Flights</a>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">Find the Best Flights, Anywhere</h1>
+        <p class="hero-subtitle">Compare airlines and prices instantly. Your journey begins here.</p>
+        
+        <div class="hero-search-wrapper">
+            <form id="homeFlightForm" method="POST" action="/search" class="hero-search-form">
+                <div class="form-header">
+                    <div class="trip-type-selector">
+                        <label class="trip-option">
+                            <input type="radio" name="trip_type" id="trip_type_oneway" value="oneway" checked 
+                                   onchange="document.getElementById('return-date-wrapper').classList.remove('visible'); document.getElementById('return_date').required = false; console.log('Changed to one-way');">
+                            <span>One-way</span>
+                        </label>
+                        <label class="trip-option">
+                            <input type="radio" name="trip_type" id="trip_type_roundtrip" value="roundtrip"
+                                   onchange="document.getElementById('return-date-wrapper').classList.add('visible'); document.getElementById('return_date').required = true; console.log('Changed to roundtrip');">
+                            <span>Round-trip</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Passenger selector in top right -->
+                    <div class="passengers-selector-compact">
+                        <button type="button" class="passengers-display-compact" id="passengersBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            <span id="passengersText">1</span>
+                        </button>
+                        <div class="passengers-dropdown-compact" id="passengersDropdown">
+                            <div class="passenger-type-compact">
+                                <span class="passenger-label-compact">Adults</span>
+                                <div class="passenger-controls-compact">
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('adults', -1)">−</button>
+                                    <span class="passenger-count-compact" id="adults-count">1</span>
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('adults', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="passenger-type-compact">
+                                <span class="passenger-label-compact">Children</span>
+                                <div class="passenger-controls-compact">
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('children', -1)">−</button>
+                                    <span class="passenger-count-compact" id="children-count">0</span>
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('children', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="passenger-type-compact">
+                                <span class="passenger-label-compact">Infants</span>
+                                <div class="passenger-controls-compact">
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('infants', -1)">−</button>
+                                    <span class="passenger-count-compact" id="infants-count">0</span>
+                                    <button type="button" class="passenger-btn-compact" onclick="changePassengerCount('infants', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="adults" id="adults-input" value="1">
+                        <input type="hidden" name="children" id="children-input" value="0">
+                        <input type="hidden" name="infants" id="infants-input" value="0">
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-field autocomplete">
+                        <label for="origin">From</label>
+                        <input type="text" name="origin" id="origin" placeholder="Origin airport" required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-field autocomplete">
+                        <label for="destination">To</label>
+                        <input type="text" name="destination" id="destination" placeholder="Destination airport" required autocomplete="off">
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="date">Departure</label>
+                        <input type="date" name="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-field" id="return-date-wrapper">
+                        <label for="return_date">Return</label>
+                        <input type="date" name="return_date" id="return_date">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="search-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            Search Flights
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </section>
+
+<!-- ========================================
+     LOADING OVERLAY
+     ======================================== -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-container">
+        <div class="loading-plane">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+            </svg>
+        </div>
+        <div class="loading-text">Searching for flights...</div>
+        <div class="loading-spinner"></div>
+    </div>
+</div>
+
+<!-- ========================================
+     AIRLINE PARTNERS SECTION
+     Animated horizontal scrolling carousel
+     ======================================== -->
+<section class="airline-partners">
+    <div class="partners-container">
+        <h3 class="partners-title">Trusted by Leading Airlines Worldwide</h3>
+        <div class="logos-slider">
+            <div class="logos-track">
+                <!-- First set of logos -->
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%23003478'%3EAmerican Airlines%3C/text%3E%3C/svg%3E" alt="American Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' font-weight='bold' fill='%23CE0E2D'%3EDELTA%3C/text%3E%3C/svg%3E" alt="Delta Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%230061A0'%3EUnited Airlines%3C/text%3E%3C/svg%3E" alt="United Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' font-weight='bold' fill='%23D71921'%3EEmirates%3C/text%3E%3C/svg%3E" alt="Emirates">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' font-weight='bold' fill='%2305164D'%3ELufthansa%3C/text%3E%3C/svg%3E" alt="Lufthansa">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='18' font-weight='bold' fill='%2375787B'%3EBritish Airways%3C/text%3E%3C/svg%3E" alt="British Airways">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='16' font-weight='bold' fill='%23002D74'%3ESingapore Airlines%3C/text%3E%3C/svg%3E" alt="Singapore Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%235C0632'%3EQatar Airways%3C/text%3E%3C/svg%3E" alt="Qatar Airways">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' font-weight='bold' fill='%23002157'%3EAir France%3C/text%3E%3C/svg%3E" alt="Air France">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%2300A1DE'%3EKLM%3C/text%3E%3C/svg%3E" alt="KLM">
+                </div>
+                
+                <!-- Duplicate set for seamless loop -->
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%23003478'%3EAmerican Airlines%3C/text%3E%3C/svg%3E" alt="American Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' font-weight='bold' fill='%23CE0E2D'%3EDELTA%3C/text%3E%3C/svg%3E" alt="Delta Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%230061A0'%3EUnited Airlines%3C/text%3E%3C/svg%3E" alt="United Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' font-weight='bold' fill='%23D71921'%3EEmirates%3C/text%3E%3C/svg%3E" alt="Emirates">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' font-weight='bold' fill='%2305164D'%3ELufthansa%3C/text%3E%3C/svg%3E" alt="Lufthansa">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='18' font-weight='bold' fill='%2375787B'%3EBritish Airways%3C/text%3E%3C/svg%3E" alt="British Airways">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='16' font-weight='bold' fill='%23002D74'%3ESingapore Airlines%3C/text%3E%3C/svg%3E" alt="Singapore Airlines">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='%235C0632'%3EQatar Airways%3C/text%3E%3C/svg%3E" alt="Qatar Airways">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' font-weight='bold' fill='%23002157'%3EAir France%3C/text%3E%3C/svg%3E" alt="Air France">
+                </div>
+                <div class="logo-item">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='28' font-weight='bold' fill='%2300A1DE'%3EKLM%3C/text%3E%3C/svg%3E" alt="KLM">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================
+     POPULAR DESTINATIONS SECTION
+     Interactive grid with beautiful images
+     Clicking a card pre-fills the search form
+     ======================================== -->
+<section class="popular-destinations">
+    <div class="destinations-container">
+        <div class="section-header">
+            <h2 class="section-title">Popular Destinations</h2>
+            <p class="section-subtitle">Explore amazing places around the world</p>
+        </div>
+        
+        <div class="destinations-grid">
+            <!-- Paris -->
+            <div class="destination-card" data-destination="CDG">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80" alt="Paris, France">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>Paris</h3>
+                        <p>France</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$450</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tokyo -->
+            <div class="destination-card" data-destination="NRT">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80" alt="Tokyo, Japan">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>Tokyo</h3>
+                        <p>Japan</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$780</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New York -->
+            <div class="destination-card" data-destination="JFK">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80" alt="New York, USA">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>New York</h3>
+                        <p>USA</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$320</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- London -->
+            <div class="destination-card" data-destination="LHR">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80" alt="London, UK">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>London</h3>
+                        <p>United Kingdom</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$380</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dubai -->
+            <div class="destination-card" data-destination="DXB">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80" alt="Dubai, UAE">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>Dubai</h3>
+                        <p>UAE</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$520</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barcelona -->
+            <div class="destination-card" data-destination="BCN">
+                <div class="destination-image">
+                    <img src="https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=80" alt="Barcelona, Spain">
+                    <div class="destination-overlay"></div>
+                </div>
+                <div class="destination-info">
+                    <div class="destination-location">
+                        <h3>Barcelona</h3>
+                        <p>Spain</p>
+                    </div>
+                    <div class="destination-price">
+                        <span class="price-label">From</span>
+                        <span class="price-amount">$410</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// Inline test script to verify toggle is working
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== HOME PAGE LOADED ===');
+    const wrapper = document.getElementById('return-date-wrapper');
+    const radios = document.querySelectorAll('input[name="trip_type"]');
+    console.log('Return wrapper element:', wrapper);
+    console.log('Trip type radios:', radios);
+    console.log('Wrapper classes:', wrapper ? wrapper.className : 'NOT FOUND');
+    
+    // ============ INLINE AIRPORT AUTOCOMPLETE ============
+    // This runs DIRECTLY in home.html - no external dependencies
+    console.log('🚀 Starting inline autocomplete setup...');
+    console.log('AIRPORTS available?', typeof AIRPORTS !== 'undefined');
+    console.log('AIRPORTS count:', typeof AIRPORTS !== 'undefined' ? Object.keys(AIRPORTS).length : 0);
+    
+    // Setup autocomplete for both fields
+    function setupInlineAutocomplete(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) {
+            console.error(`❌ Input #${inputId} not found!`);
+            return;
+        }
+        
+        console.log(`✅ Found input #${inputId}, setting up autocomplete...`);
+        
+        // Create dropdown
+        const dropdown = document.createElement('div');
+        dropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(3, 4, 94, 0.98), rgba(2, 62, 138, 0.98));
+            border: 2px solid #48cae4;
+            border-radius: 12px;
+            margin-top: 4px;
+            max-height: 350px;
+            overflow-y: auto;
+            display: none;
+            z-index: 999999;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        `;
+        
+        input.parentElement.appendChild(dropdown);
+        
+        // Convert AIRPORTS to array
+        const airports = typeof AIRPORTS !== 'undefined' ? 
+            Object.entries(AIRPORTS).map(([iata, info]) => ({
+                iata, 
+                name: info.name || '', 
+                city: info.city || '', 
+                country: info.country || ''
+            })) : [];
+        
+        console.log(`📋 ${inputId}: Loaded ${airports.length} airports`);
+        
+        // Input handler
+        input.addEventListener('input', function() {
+            const keyword = this.value.trim().toLowerCase();
+            console.log(`📝 ${inputId}: User typed "${keyword}"`);
+            
+            dropdown.innerHTML = '';
+            
+            if (keyword.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Search
+            const matches = airports.filter(a =>
+                a.iata.toLowerCase().includes(keyword) ||
+                a.city.toLowerCase().includes(keyword) ||
+                a.name.toLowerCase().includes(keyword)
+            ).slice(0, 8);
+            
+            console.log(`🔍 ${inputId}: Found ${matches.length} matches`);
+            
+            if (matches.length === 0) {
+                dropdown.innerHTML = `
+                    <div style="padding: 15px; text-align: center; color: rgba(255,255,255,0.7);">
+                        No airports found for "${keyword}"
+                    </div>
+                `;
+                dropdown.style.display = 'block';
+                return;
+            }
+            
+            // Show results
+            matches.forEach(airport => {
+                const item = document.createElement('div');
+                item.style.cssText = `
+                    padding: 12px 15px;
+                    cursor: pointer;
+                    border-bottom: 1px solid rgba(72, 202, 228, 0.15);
+                    transition: background 0.2s;
+                `;
+                
+                const location = airport.city + (airport.country ? `, ${airport.country}` : '');
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="
+                            background: rgba(72, 202, 228, 0.2);
+                            border: 1.5px solid #48cae4;
+                            border-radius: 6px;
+                            padding: 6px 10px;
+                            font-weight: 700;
+                            color: #48cae4;
+                            min-width: 50px;
+                            text-align: center;
+                        ">${airport.iata}</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; color: #fff; margin-bottom: 2px;">${location}</div>
+                            <div style="font-size: 0.85rem; color: rgba(173, 232, 244, 0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${airport.name}</div>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('mouseenter', () => item.style.background = 'rgba(72, 202, 228, 0.15)');
+                item.addEventListener('mouseleave', () => item.style.background = 'transparent');
+                
+                item.addEventListener('click', () => {
+                    input.value = airport.iata;
+                    dropdown.style.display = 'none';
+                    console.log(`✅ ${inputId}: Selected ${airport.iata}`);
+                });
+                
+                dropdown.appendChild(item);
+            });
+            
+            dropdown.style.display = 'block';
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+    
+    // Initialize for both inputs
+    setupInlineAutocomplete('origin');
+    setupInlineAutocomplete('destination');
+    console.log('✅ Inline autocomplete setup complete!');
+    
+    // ============ END AUTOCOMPLETE ============
+    
+    // Passenger selector toggle
+    const passengersBtn = document.getElementById('passengersBtn');
+    const passengersDropdown = document.getElementById('passengersDropdown');
+    
+    if (passengersBtn && passengersDropdown) {
+        passengersBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            passengersDropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!passengersBtn.contains(e.target) && !passengersDropdown.contains(e.target)) {
+                passengersDropdown.classList.remove('show');
+            }
+        });
+    }
+    
+    // Loading animation on form submit
+    const flightForm = document.getElementById('homeFlightForm');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    console.log('Form element:', flightForm);
+    console.log('Loading overlay:', loadingOverlay);
+    
+    if (flightForm && loadingOverlay) {
+        flightForm.addEventListener('submit', function(e) {
+            console.log('Form submitted! Showing loading...');
+            // Show loading overlay
+            loadingOverlay.classList.add('active');
+            // Allow form to submit normally
+            return true;
+        });
+    } else {
+        console.error('Form or loading overlay not found!');
+    }
+});
+
+// Passenger counts
+let passengers = {
+    adults: 1,
+    children: 0,
+    infants: 0
+};
+
+function changePassengerCount(type, change) {
+    const newValue = passengers[type] + change;
+    
+    // Validation
+    if (type === 'adults' && newValue < 1) return; // At least 1 adult required
+    if (newValue < 0) return; // No negative values
+    if (type === 'adults' && newValue > 9) return; // Max 9 adults
+    if (type === 'children' && newValue > 9) return; // Max 9 children
+    if (type === 'infants' && newValue > passengers.adults) return; // Infants can't exceed adults
+    
+    passengers[type] = newValue;
+    
+    // Update display
+    document.getElementById(type + '-count').textContent = newValue;
+    document.getElementById(type + '-input').value = newValue;
+    
+    // Update button text
+    updatePassengersText();
+}
+
+function updatePassengersText() {
+    const total = passengers.adults + passengers.children + passengers.infants;
+    document.getElementById('passengersText').textContent = total;
+}
+
+// ========================================
+// AIRPORT AUTOCOMPLETE - Uses airports.json
+// ========================================
+(function() {
+    let airportsList = [];
+    
+    // Load airports from JSON file
+    fetch('/static/../json-files/airports.json')
+        .then(response => response.json())
+        .then(data => {
+            // Convert to array, filter only airports with IATA codes
+            airportsList = Object.values(data)
+                .filter(airport => airport.iata && airport.iata.length === 3)
+                .map(airport => ({
+                    iata: airport.iata,
+                    name: airport.name,
+                    city: airport.city,
+                    country: airport.country,
+                    state: airport.state
+                }));
+            
+            console.log('✈️ Loaded', airportsList.length, 'airports from airports.json');
+            
+            // Setup autocomplete for both inputs
+            setupAutocomplete('origin');
+            setupAutocomplete('destination');
+        })
+        .catch(error => console.error('Error loading airports:', error));
+    
+    function setupAutocomplete(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'airport-dropdown';
+        dropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 2px solid #48cae4;
+            border-radius: 12px;
+            margin-top: 4px;
+            max-height: 350px;
+            overflow-y: auto;
+            display: none;
+            z-index: 999999;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(72, 202, 228, 0.3);
+        `;
+        
+        input.parentElement.appendChild(dropdown);
+        
+        let debounceTimer;
+        
+        input.addEventListener('input', function() {
+            const keyword = this.value.trim().toLowerCase();
+            clearTimeout(debounceTimer);
+            
+            if (keyword.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            debounceTimer = setTimeout(() => {
+                const matches = airportsList.filter(airport => 
+                    airport.iata.toLowerCase().includes(keyword) ||
+                    airport.city.toLowerCase().includes(keyword) ||
+                    airport.name.toLowerCase().includes(keyword)
+                ).slice(0, 8);
+                
+                dropdown.innerHTML = '';
+                
+                if (matches.length === 0) {
+                    dropdown.innerHTML = `<div style="padding: 20px; text-align: center; color: #023e8a; font-weight: 500;">No airports found</div>`;
+                    dropdown.style.display = 'block';
+                    return;
+                }
+                
+                matches.forEach(airport => {
+                    const item = document.createElement('div');
+                    item.style.cssText = `
+                        padding: 14px 18px;
+                        cursor: pointer;
+                        border-bottom: 1px solid rgba(72, 202, 228, 0.3);
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                        transition: all 0.3s ease;
+                        background: transparent;
+                    `;
+                    
+                    const location = airport.city + (airport.state ? `, ${airport.state}` : '') + (airport.country ? `, ${airport.country}` : '');
+                    
+                    item.innerHTML = `
+                        <div style="
+                            background: linear-gradient(135deg, #0077b6, #00b4d8);
+                            border: 2px solid #48cae4;
+                            border-radius: 8px;
+                            padding: 8px 12px;
+                            font-weight: 700;
+                            color: #ffffff;
+                            min-width: 50px;
+                            text-align: center;
+                            font-size: 0.95rem;
+                            letter-spacing: 0.5px;
+                            box-shadow: 0 2px 8px rgba(72, 202, 228, 0.3);
+                        ">${airport.iata}</div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="color: #03045e; font-weight: 600; font-size: 0.95rem; margin-bottom: 3px;">${location}</div>
+                            <div style="color: #023e8a; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8;">${airport.name}</div>
+                        </div>
+                    `;
+                    
+                    item.onmouseenter = () => {
+                        item.style.background = 'linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 180, 216, 0.1))';
+                        item.style.borderLeft = '4px solid #0077b6';
+                        item.style.paddingLeft = '14px';
+                    };
+                    item.onmouseleave = () => {
+                        item.style.background = 'transparent';
+                        item.style.borderLeft = 'none';
+                        item.style.paddingLeft = '18px';
+                    };
+                    
+                    item.onclick = () => {
+                        // Format: "City, Country - Airport Name (CODE)"
+                        const displayText = `${airport.city}${airport.country ? ', ' + airport.country : ''}${airport.state ? ', ' + airport.state : ''} - ${airport.name} (${airport.iata})`;
+                        input.value = displayText;
+                        dropdown.style.display = 'none';
+                    };
+                    
+                    dropdown.appendChild(item);
+                });
+                
+                dropdown.style.display = 'block';
+            }, 250);
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+})();
+</script>
+
 {% endblock %}

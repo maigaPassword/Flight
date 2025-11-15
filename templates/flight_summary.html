@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Trip Summary{% endblock %}
+
+{% block content %}
+<section class="results-page">
+  <h2>Review your trip</h2>
+
+  <div class="summary-layout">
+    <div class="summary-main">
+  <!-- Outbound Card -->
+  <div class="flight-card summary-card" data-segments='{{ outbound.segments | tojson | safe }}'>
+    <div class="flight-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        {% if outbound.airline_logo %}
+          <img src="{{ outbound.airline_logo }}" alt="{{ outbound.airline_name }}" class="airline-logo">
+        {% endif %}
+        <div>
+          <div class="summary-chip">Outbound</div>
+          <h3>{{ outbound.airline_name }}</h3>
+        </div>
+      </div>
+      <p class="price">${{ "%.2f"|format(price_out) }}</p>
+    </div>
+    <div class="itinerary">
+      <div class="col">
+        <div class="time-lg">{{ out_dep_time }}</div>
+        <div class="day-sub">{{ outbound.departure | date_compact }}</div>
+        <div class="city">{{ origin_city }} ({{ outbound.origin }})</div>
+      </div>
+      <div class="meta">
+        <div class="arrow">→</div>
+        <div class="dur"><strong>{{ outbound.duration }}</strong></div>
+        {% if outbound.stops_text %}<div class="stops">{{ outbound.stops_text }}</div>{% endif %}
+      </div>
+      <div class="col">
+        <div class="time-lg">{{ out_arr_time }}</div>
+        <div class="day-sub">{{ outbound.arrival | date_compact }}</div>
+        <div class="city">{{ destination_city }} ({{ outbound.destination }})</div>
+      </div>
+    </div>
+    <div class="pill">Cabin: {{ cabin_out }}</div>
+    <div class="summary-actions" style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="select-btn details-toggle" data-target="#outbound-details">Details</button>
+      
+      <!-- Seat Selection Button -->
+      <form action="/seat_selection" method="POST" style="margin: 0; display: inline;">
+        <input type="hidden" name="outbound_json" value='{{ outbound | tojson | safe }}'>
+        {% if return_flight %}
+          <input type="hidden" name="return_json" value='{{ return_flight | tojson | safe }}'>
+          <input type="hidden" name="cabin_ret" value="{{ cabin_ret }}">
+        {% endif %}
+        <input type="hidden" name="cabin_out" value="{{ cabin_out }}">
+        <input type="hidden" name="total_price" value="{{ total_price }}">
+        {% if base_total is not none %}
+          <input type="hidden" name="base_total" value="{{ base_total }}">
+        {% endif %}
+        {% if taxes_total is not none %}
+          <input type="hidden" name="taxes_total" value="{{ taxes_total }}">
+        {% endif %}
+        
+        <button type="submit" class="btn-seat-selection">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.4rem;">
+            <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+            <path d="M3 10h18M3 14h18"></path>
+          </svg>
+          Select Seats
+        </button>
+      </form>
+    </div>
+    <div id="outbound-details" class="segment-list" style="display:none;">
+      <ul class="details-list">
+        {% for s in outbound.segments %}
+          {% set oc = AIRPORTS.get(s.origin, {}).get('city', s.origin) %}
+          {% set dc = AIRPORTS.get(s.destination, {}).get('city', s.destination) %}
+          <li>
+            <span class="t">{{ s.departure | time12 }}</span>
+            <span class="d">{{ s.departure | date_compact }}</span>
+            <span class="route">{{ oc }} ({{ s.origin }}) → {{ dc }} ({{ s.destination }})</span>
+            <span class="t">{{ s.arrival | time12 }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {% if return_flight %}
+  <!-- Return Card -->
+  <div class="flight-card summary-card" data-segments='{{ return_flight.segments | tojson | safe }}'>
+    <div class="flight-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        {% if return_flight.airline_logo %}
+          <img src="{{ return_flight.airline_logo }}" alt="{{ return_flight.airline_name }}" class="airline-logo">
+        {% endif %}
+        <div>
+          <div class="summary-chip">Return</div>
+          <h3>{{ return_flight.airline_name }}</h3>
+        </div>
+      </div>
+      <p class="price">${{ "%.2f"|format(price_ret) }}</p>
+    </div>
+    <div class="itinerary">
+      <div class="col">
+        <div class="time-lg">{{ ret_dep_time }}</div>
+        <div class="day-sub">{{ return_flight.departure | date_compact }}</div>
+        <div class="city">{{ destination_city }} ({{ return_flight.origin }})</div>
+      </div>
+      <div class="meta">
+        <div class="arrow">→</div>
+        <div class="dur"><strong>{{ return_flight.duration }}</strong></div>
+        {% if return_flight.stops_text %}<div class="stops">{{ return_flight.stops_text }}</div>{% endif %}
+      </div>
+      <div class="col">
+        <div class="time-lg">{{ ret_arr_time }}</div>
+        <div class="day-sub">{{ return_flight.arrival | date_compact }}</div>
+        <div class="city">{{ origin_city }} ({{ return_flight.destination }})</div>
+      </div>
+    </div>
+    <div class="pill">Cabin: {{ cabin_ret }}</div>
+    <div class="summary-actions" style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="select-btn details-toggle" data-target="#return-details">Details</button>
+    </div>
+    <div id="return-details" class="segment-list" style="display:none;">
+      <ul class="details-list">
+        {% for s in return_flight.segments %}
+          {% set oc = AIRPORTS.get(s.origin, {}).get('city', s.origin) %}
+          {% set dc = AIRPORTS.get(s.destination, {}).get('city', s.destination) %}
+          <li>
+            <span class="t">{{ s.departure | time12 }}</span>
+            <span class="d">{{ s.departure | date_compact }}</span>
+            <span class="route">{{ oc }} ({{ s.origin }}) → {{ dc }} ({{ s.destination }})</span>
+            <span class="t">{{ s.arrival | time12 }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+    </div>
+
+    <aside class="summary-sidebar">
+      <div class="flight-card summary-card checkout-card">
+        <div class="checkout-header">
+          <h3>Price Summary</h3>
+        </div>
+        
+        <!-- Passenger Information -->
+        <div class="price-rows" style="border-bottom: 1px solid #e0e0e0; padding-bottom: 1rem; margin-bottom: 1rem;">
+          <div class="price-row" style="font-weight: 600; color: #1a1a1a; margin-bottom: 0.5rem;">
+            <span>Passengers</span>
+            <span>{{ total_passengers }}</span>
+          </div>
+          {% if adults > 0 %}
+          <div class="price-row" style="font-size: 0.9rem; color: #666;">
+            <span>{{ adults }} Adult{{ 's' if adults > 1 else '' }}</span>
+          </div>
+          {% endif %}
+          {% if children > 0 %}
+          <div class="price-row" style="font-size: 0.9rem; color: #666;">
+            <span>{{ children }} Child{{ 'ren' if children > 1 else '' }}</span>
+          </div>
+          {% endif %}
+          {% if infants > 0 %}
+          <div class="price-row" style="font-size: 0.9rem; color: #666;">
+            <span>{{ infants }} Infant{{ 's' if infants > 1 else '' }}</span>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="price-rows">
+          {% if base_total is not none %}
+            <div class="price-row"><span>Fare subtotal</span><span>${{ "%.2f"|format(base_total) }}</span></div>
+          {% endif %}
+          {% if taxes_total is not none %}
+            <div class="price-row"><span>Taxes & fees</span><span>${{ "%.2f"|format(taxes_total) }}</span></div>
+          {% else %}
+            <div class="price-row"><span>Taxes & fees</span><span>Included</span></div>
+          {% endif %}
+          <div class="price-row price-total"><span>Total</span><span>${{ "%.2f"|format(total_price) }}</span></div>
+        </div>
+        <div class="checkout-actions">
+          <a class="select-btn" href="/search">Change flights</a>
+          <form action="/booking" method="POST" style="margin: 0;">
+            <input type="hidden" name="outbound_json" value='{{ outbound | tojson | safe }}'>
+            {% if return_flight %}
+              <input type="hidden" name="return_json" value='{{ return_flight | tojson | safe }}'>
+              <input type="hidden" name="cabin_ret" value="{{ cabin_ret }}">
+            {% endif %}
+            <input type="hidden" name="cabin_out" value="{{ cabin_out }}">
+            <input type="hidden" name="total_price" value="{{ total_price }}">
+            {% if base_total is not none %}
+              <input type="hidden" name="base_total" value="{{ base_total }}">
+            {% endif %}
+            {% if taxes_total is not none %}
+              <input type="hidden" name="taxes_total" value="{{ taxes_total }}">
+            {% endif %}
+            
+            <!-- Continue without seat selection -->
+            <button type="submit" class="btn btn-primary">Continue to Booking</button>
+          </form>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+.btn-seat-selection {
+    background: rgba(72, 202, 228, 0.15) !important;
+    border: 2px solid rgba(72, 202, 228, 0.5) !important;
+    color: #48cae4 !important;
+    padding: 0.65rem 1.25rem !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+}
+
+.btn-seat-selection:hover {
+    background: rgba(72, 202, 228, 0.25) !important;
+    border-color: #48cae4 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 20px rgba(72, 202, 228, 0.4) !important;
+}
+
+.btn-seat-selection svg {
+    stroke: #48cae4 !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure summary-actions buttons align properly */
+.summary-actions {
+    align-items: center !important;
+}
+
+.summary-actions form {
+    display: inline !important;
+}
+</style>
+
+<script>
+  // Toggle segment details panels
+  document.querySelectorAll('.details-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.querySelector(btn.dataset.target);
+      if (!target) return;
+      const visible = target.style.display !== 'none';
+      target.style.display = visible ? 'none' : 'block';
+      btn.textContent = visible ? 'Details' : 'Hide details';
+    });
+  });
+</script>
+{% endblock %}

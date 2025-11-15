@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Review Your Trip — {{ origin }} → {{ destination }}{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --bg: #031017;
+  --card: #0b1b23;
+  --muted: #9bb1b8;
+  --accent: #0fe3ff;
+  --accent-dark: #00b6d1;
+}
+body { background: var(--bg); color: #e9f8fb; font-family: Inter,Segoe UI,Roboto,Arial,sans-serif; }
+
+.modern-wrap { max-width: 1200px; margin: 18px auto; padding: 18px; }
+.grid { display: grid; grid-template-columns: 1fr 360px; gap: 22px; }
+.card { background: linear-gradient(180deg,var(--card),#0f2530); border-radius: 14px; padding: 18px; box-shadow:0 12px 30px rgba(6,12,18,0.6); transition: transform .18s ease, box-shadow .18s ease; }
+.card:hover { transform: translateY(-4px); }
+
+.route-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.route-title { font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+.route-sub { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+.logo { height: 52px; width: auto; border-radius: 6px; }
+
+.timeline-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.segment { background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; text-align: center; }
+.seg-time { font-weight: 800; font-size: 1.05rem; }
+.seg-sub { color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+
+.fare-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin-top: 14px; padding: 14px; border-radius: 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+.fare-meta { display: grid; gap: 6px; }
+.fare-price { font-weight: 900; font-size: 1.3rem; color: #fff; }
+.fare-details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+.feature { background: rgba(255,255,255,0.015); padding: 10px; border-radius: 8px; color: var(--muted); font-size: 0.9rem; }
+
+.aside { position: relative; }
+  .price-panel { position: static; top: auto; background: linear-gradient(180deg,#07181d,#09242b); padding: 18px; border-radius: 12px; box-shadow:0 12px 30px rgba(2,8,12,0.6); transition: all .2s ease; }
+.price-label { color: var(--muted); font-size: 0.95rem; }
+.price-total { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.total-amount { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+.cta { display: block; margin-top: 14px; background: var(--accent); color: #012022; padding: 12px; border-radius: 10px; text-align: center; font-weight: 800; text-decoration: none; }
+.ghost { display: block; margin-top: 10px; text-align: center; color: var(--muted); }
+
+.button-detail { margin-top: 8px; display: inline-block; background: var(--accent-dark); padding: 6px 10px; border-radius: 6px; color: #012022; font-weight: 700; text-decoration: none; font-size: 0.9rem; }
+
+@media(max-width:880px){
+  .grid { grid-template-columns:1fr; }
+  .price-panel { position: static; left: auto; right: auto; bottom: auto; z-index: auto; padding: 12px; }
+  .modern-wrap { padding-bottom: 40px; }
+  .aside { display: block; }
+  .timeline-grid { grid-template-columns:1fr; }
+  .fare-details-grid { grid-template-columns:1fr; }
+}
+</style>
+
+<section class="modern-wrap">
+  <div class="grid">
+    <main>
+      <!-- Outbound Flight -->
+      <article class="card">
+        <div class="route-top">
+          <div>
+            <div class="route-title">{{ airline }} — {{ origin_city }} ({{ origin }}) → {{ destination_city }} ({{ destination }})</div>
+            <div class="route-sub">{{ origin_city }} • {{ destination_city }} • {{ duration }} • {{ stops }}</div>
+          </div>
+          {% if logo %}
+          <img src="{{ logo }}" alt="{{ airline }}" class="logo">
+          {% endif %}
+        </div>
+
+        <div class="timeline-grid">
+          <div class="segment">
+            <div class="seg-time">{{ departure_time }}</div>
+            <div class="seg-sub">Depart • {{ departure_date }}</div>
+          </div>
+          <div class="segment">
+            <div class="seg-time">{{ duration }}</div>
+            <div class="seg-sub">Total duration</div>
+          </div>
+          <div class="segment">
+            <div class="seg-time">{{ arrival_time }}</div>
+            <div class="seg-sub">Arrive • {{ arrival_date }}</div>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:12px;">
+          <a href="#" class="button-detail">View flight details</a>
+        </div>
+
+        <div class="fare-card">
+          <div class="fare-meta">
+            <div style="font-weight:800">{{ selected_cabin }}</div>
+            <div class="meta">{{ fare.fare_type }} • {{ fare.flexibility }}</div>
+            <div class="fare-details-grid">
+              <div class="feature">Seat: {{ 'Seat choice not allowed' if 'Not' in fare.seat else 'Seat included' }}</div>
+              <div class="feature">Bags: {% if fare.bags.quantity %}{{ fare.bags.quantity }} checked{% else %}None{% endif %}</div>
+              <div class="feature">Change: {{ fare.change_fee or 'Included' }}</div>
+              <div class="feature">Refundable: {{ 'Yes' if fare.flexibility == 'Refundable' else 'No' }}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="fare-price">${{ "%.2f"|format(fare.price) }}</div>
+            <div class="meta">per traveler</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Return Flight -->
+      {% if return_segments and return_segments|length > 0 and return_segments[0].origin_city %}
+      <article class="card">
+        <h4 style="margin:0 0 8px 0; color: var(--accent)">Return flight</h4>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          {% for seg in return_segments %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02)">
+            <div style="font-weight:700">{{ seg.origin_city }} → {{ seg.destination_city }}</div>
+            <div class="meta">{{ seg.departure_time }} → {{ seg.arrival_time }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+      {% endif %}
+    </main>
+
+    <!-- Price Summary -->
+    <aside class="aside">
+      <div class="price-panel">
+        <div class="price-label">Price summary</div>
+        <div style="margin-top:8px;color:var(--muted)">Flight <span style="float:right">${{ "%.2f"|format(fare.flight_price or fare.price) }}</span></div>
+        <div style="margin-top:6px;color:var(--muted)">Taxes & fees <span style="float:right">${{ "%.2f"|format(fare.taxes or 0.0) }}</span></div>
+        <div class="price-total"><div class="meta">Total</div><div class="total-amount">${{ "%.2f"|format(fare.price) }}</div></div>
+        <a href="#" class="cta">Continue to checkout</a>
+        <div class="ghost">Rates shown in USD • Checkout not implemented</div>
+      </div>
+    </aside>
+  </div>
+
+</section>
+
+<script>
+(function(){
+  function adapt(){
+    const panel=document.querySelector('.price-panel');
+    if(!panel) return;
+    if(window.innerWidth<=880){
+      panel.style.position='static';
+      panel.style.left='auto';
+      panel.style.right='auto';
+      panel.style.bottom='auto';
+      panel.style.zIndex='auto';
+    } else {
+      panel.style.position='sticky';
+      panel.style.left='auto';
+      panel.style.right='auto';
+      panel.style.bottom='auto';
+      panel.style.zIndex='auto';
+    }
+  }
+  adapt();
+  window.addEventListener('resize', adapt);
+})();
+</script>
+{% endblock %}

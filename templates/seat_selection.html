@@ -1,0 +1,698 @@
+{#
+    SEAT SELECTION PAGE
+    ===================
+    Interactive seat map for selecting seats on flights
+    Shows seatmap layout with available/occupied seats
+    
+    Author: Group 5
+    Date: 2025
+#}
+
+{% extends 'base.html' %}
+{% block title %}Select Your Seats{% endblock %}
+{% block content %}
+
+<style>
+.seat-selection-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
+
+.flight-info-header {
+    background: linear-gradient(135deg, rgba(3, 4, 94, 0.95), rgba(0, 119, 182, 0.95));
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    color: #fff;
+}
+
+.flight-route {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.flight-details {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.seatmap-section {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #023e8a;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title svg {
+    width: 24px;
+    height: 24px;
+    color: #0077b6;
+}
+
+.aircraft-container {
+    background: linear-gradient(180deg, rgba(3, 4, 94, 0.6), rgba(0, 119, 182, 0.4));
+    border-radius: 50px;
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Aircraft nose/tail styling */
+.aircraft-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(72, 202, 228, 0.3), transparent);
+    border-radius: 0 0 60px 60px;
+}
+
+.cabin-section {
+    margin-bottom: 2.5rem;
+}
+
+.cabin-label {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+    gap: 12px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.seat-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.row-number {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: rgba(173, 232, 244, 0.6);
+    font-size: 0.9rem;
+}
+
+.seat {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px 8px 4px 4px;
+    border: 2px solid rgba(72, 202, 228, 0.3);
+    background: rgba(2, 62, 138, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    position: relative;
+}
+
+.seat:hover:not(.occupied):not(.selected) {
+    transform: scale(1.1);
+    border-color: var(--cyan);
+    background: rgba(72, 202, 228, 0.3);
+    box-shadow: 0 4px 12px rgba(72, 202, 228, 0.4);
+}
+
+.seat.available {
+    background: rgba(2, 62, 138, 0.5);
+    border-color: rgba(72, 202, 228, 0.4);
+}
+
+.seat.occupied {
+    background: rgba(128, 128, 128, 0.3);
+    border-color: rgba(128, 128, 128, 0.4);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.seat.selected {
+    background: linear-gradient(135deg, rgba(72, 202, 228, 0.8), rgba(0, 180, 216, 0.8));
+    border-color: var(--cyan);
+    box-shadow: 0 0 20px rgba(72, 202, 228, 0.6);
+    transform: scale(1.05);
+}
+
+.seat.extra-legroom {
+    border-color: rgba(255, 193, 7, 0.6);
+}
+
+.seat.extra-legroom::after {
+    content: '⭐';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 14px;
+}
+
+.aisle {
+    width: 30px;
+}
+
+.seat-legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+    background: rgba(3, 4, 94, 0.4);
+    padding: 1.25rem 2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(72, 202, 228, 0.2);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+}
+
+.legend-item span {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-weight: 600 !important;
+}
+
+.legend-seat {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.selected-seats-summary {
+    background: linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 180, 216, 0.1));
+    border: 2px solid rgba(72, 202, 228, 0.5);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 6px 20px rgba(72, 202, 228, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.selected-seats-summary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        #48cae4 50%, 
+        transparent);
+    opacity: 0.6;
+}
+
+.summary-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #48cae4;
+    margin-bottom: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.summary-title::before {
+    content: '✓';
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(72, 202, 228, 0.2);
+    border: 2px solid #48cae4;
+    border-radius: 50%;
+    font-size: 1.1rem;
+}
+
+.selected-seat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    min-height: 50px;
+    align-items: center;
+}
+
+.selected-seat-badge {
+    background: linear-gradient(135deg, rgba(72, 202, 228, 0.3), rgba(0, 180, 216, 0.25));
+    border: 2px solid #48cae4;
+    border-radius: 25px;
+    padding: 0.65rem 1.25rem;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 12px rgba(72, 202, 228, 0.3), 
+                0 0 20px rgba(72, 202, 228, 0.15);
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+}
+
+.selected-seat-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(72, 202, 228, 0.4), 
+                0 0 25px rgba(72, 202, 228, 0.25);
+}
+
+.selected-seat-badge span:first-child {
+    color: #48cae4;
+    font-weight: 700;
+}
+
+.remove-seat {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.4rem;
+    line-height: 1;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    padding: 0 0.25rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-seat:hover {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.15);
+    transform: scale(1.2);
+}
+
+.seat-total {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #00b4d8;
+    text-align: right;
+    padding: 1rem 0 0.25rem 0;
+    border-top: 2px solid rgba(0, 180, 216, 0.4);
+    margin-top: 1rem;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(0, 180, 216, 0.5);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.btn-continue, .btn-skip {
+    padding: 1.25rem 2.5rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-continue {
+    background: linear-gradient(135deg, #0077b6, #00b4d8);
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 119, 182, 0.4);
+}
+
+.btn-continue:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 30px rgba(72, 202, 228, 0.6);
+    background: linear-gradient(135deg, #0096c7, #48cae4);
+}
+
+.btn-skip {
+    background: rgba(72, 202, 228, 0.1);
+    color: #48cae4;
+    border: 2px solid rgba(72, 202, 228, 0.4);
+}
+
+.btn-skip:hover {
+    background: rgba(72, 202, 228, 0.2);
+    border-color: #48cae4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(72, 202, 228, 0.3);
+}
+
+.loading-seatmap {
+    text-align: center;
+    padding: 3rem;
+    color: rgba(173, 232, 244, 0.8);
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1rem;
+    border: 4px solid rgba(72, 202, 228, 0.2);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<div class="seat-selection-container">
+    <!-- Seatmap Section -->
+    <div class="seatmap-section">
+        <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+                <path d="M3 10h18M3 14h18"></path>
+            </svg>
+            Choose Your Seats
+        </div>
+
+        <!-- Seat Legend -->
+        <div class="seat-legend">
+            <div class="legend-item">
+                <div class="legend-seat available" style="background: rgba(2, 62, 138, 0.5); border: 2px solid rgba(72, 202, 228, 0.4);"></div>
+                <span>Available</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat selected" style="background: linear-gradient(135deg, rgba(72, 202, 228, 0.8), rgba(0, 180, 216, 0.8)); border: 2px solid var(--cyan);"></div>
+                <span>Selected</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat occupied" style="background: rgba(128, 128, 128, 0.3); border: 2px solid rgba(128, 128, 128, 0.4); opacity: 0.5;"></div>
+                <span>Occupied</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat extra-legroom" style="background: rgba(2, 62, 138, 0.5); border: 2px solid rgba(255, 193, 7, 0.6); position: relative;">
+                    <span style="position: absolute; top: -8px; right: -8px; font-size: 14px;">⭐</span>
+                </div>
+                <span>Extra Legroom</span>
+            </div>
+        </div>
+
+        <div id="seatmap-container">
+            <div class="loading-seatmap">
+                <div class="loading-spinner"></div>
+                <div>Loading seat map...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Seats Summary -->
+    <div class="selected-seats-summary" id="selected-summary">
+        <div class="summary-title">Selected Seats</div>
+        <div class="selected-seat-list" id="selected-list">
+            <p style="color: rgba(0, 0, 0, 0.7); font-style: italic; margin: 0; font-size: 1rem; font-weight: 500;">No seats selected yet. Click on available seats to select them.</p>
+        </div>
+        <div class="seat-total" id="seat-total">Seat Total: $0.00</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <form method="POST" action="/booking" style="display: inline;">
+            <input type="hidden" name="outbound_json" value="{{ outbound_json }}">
+            <input type="hidden" name="return_json" value="{{ return_json or '' }}">
+            <input type="hidden" name="cabin_out" value="{{ cabin_out }}">
+            <input type="hidden" name="cabin_ret" value="{{ cabin_ret or '' }}">
+            <input type="hidden" name="total_price" value="{{ total_price }}">
+            <input type="hidden" name="base_total" value="{{ base_total or '' }}">
+            <input type="hidden" name="taxes_total" value="{{ taxes_total or '' }}">
+            <input type="hidden" name="selected_seats" id="selected-seats-input" value="">
+            <button type="submit" class="btn-skip">Skip Seat Selection</button>
+        </form>
+        <form method="POST" action="/booking" style="display: inline;" id="continue-form">
+            <input type="hidden" name="outbound_json" value="{{ outbound_json }}">
+            <input type="hidden" name="return_json" value="{{ return_json or '' }}">
+            <input type="hidden" name="cabin_out" value="{{ cabin_out }}">
+            <input type="hidden" name="cabin_ret" value="{{ cabin_ret or '' }}">
+            <input type="hidden" name="total_price" value="{{ total_price }}" id="total-price-input">
+            <input type="hidden" name="base_total" value="{{ base_total or '' }}">
+            <input type="hidden" name="taxes_total" value="{{ taxes_total or '' }}">
+            <input type="hidden" name="selected_seats" id="selected-seats-input-2" value="">
+            <button type="submit" class="btn-continue">Continue to Booking</button>
+        </form>
+    </div>
+</div>
+
+<script>
+let selectedSeats = [];
+let seatPrices = {};
+let totalPassengers = {{ total_passengers }};
+let basePrice = parseFloat('{{ total_price }}') || 0;
+
+// Load seatmap from API
+async function loadSeatmap() {
+    try {
+        const flightOffer = {{ outbound_json | safe }};
+        
+        const response = await fetch('/api/seatmaps', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                flightOffer: flightOffer
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.seatmaps && data.seatmaps.length > 0) {
+            renderSeatmap(data.seatmaps[0]);
+        } else {
+            // API returned no data - use mock seatmap
+            console.log('No seatmap data from API, using mock seatmap');
+            showMockSeatmap();
+        }
+    } catch (error) {
+        console.error('Seatmap error:', error);
+        showMockSeatmap(); // Fallback to mock data
+    }
+}
+
+function showError(message) {
+    document.getElementById('seatmap-container').innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: rgba(173, 232, 244, 0.8);">
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+function renderSeatmap(seatmapData) {
+    const container = document.getElementById('seatmap-container');
+    
+    if (!seatmapData.decks || seatmapData.decks.length === 0) {
+        showMockSeatmap();
+        return;
+    }
+
+    let html = '<div class="aircraft-container">';
+    
+    seatmapData.decks.forEach((deck, deckIndex) => {
+        html += '<div class="cabin-section">';
+        html += `<div class="cabin-label">Cabin ${deckIndex + 1}</div>`;
+        
+        if (deck.seats && deck.seats.length > 0) {
+            // Group seats by row
+            const seatsByRow = {};
+            deck.seats.forEach(seat => {
+                const row = seat.number.match(/\d+/)[0];
+                if (!seatsByRow[row]) seatsByRow[row] = [];
+                seatsByRow[row].push(seat);
+            });
+            
+            // Render rows
+            Object.keys(seatsByRow).sort((a, b) => parseInt(a) - parseInt(b)).forEach(row => {
+                html += '<div class="seat-row">';
+                html += `<div class="row-number">${row}</div>`;
+                
+                seatsByRow[row].forEach((seat, idx) => {
+                    const isOccupied = Math.random() > 0.7; // Mock occupancy
+                    const isExtraLegroom = seat.characteristicsCodes && seat.characteristicsCodes.includes('LEG_SPACE');
+                    const price = seat.travelerPricing && seat.travelerPricing[0] ? parseFloat(seat.travelerPricing[0].price || 0) : 0;
+                    
+                    seatPrices[seat.number] = price;
+                    
+                    const classes = ['seat', 'available'];
+                    if (isOccupied) classes.push('occupied');
+                    if (isExtraLegroom) classes.push('extra-legroom');
+                    
+                    html += `<div class="${classes.join(' ')}" 
+                                  data-seat="${seat.number}" 
+                                  data-price="${price}"
+                                  onclick="toggleSeat('${seat.number}', ${price})">
+                                  ${seat.number.match(/[A-Z]/)[0]}
+                             </div>`;
+                    
+                    // Add aisle after certain seats
+                    if ((idx + 1) % 3 === 0 && idx < seatsByRow[row].length - 1) {
+                        html += '<div class="aisle"></div>';
+                    }
+                });
+                
+                html += '</div>';
+            });
+        }
+        
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function showMockSeatmap() {
+    // Mock seatmap with typical configuration
+    const container = document.getElementById('seatmap-container');
+    const rows = 20;
+    const seatsPerRow = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    let html = '<div class="aircraft-container">';
+    html += '<div class="cabin-section">';
+    html += '<div class="cabin-label">{{ cabin_out }} Class</div>';
+    
+    for (let row = 1; row <= rows; row++) {
+        html += '<div class="seat-row">';
+        html += `<div class="row-number">${row}</div>`;
+        
+        seatsPerRow.forEach((letter, idx) => {
+            const seatNum = `${row}${letter}`;
+            const isOccupied = Math.random() > 0.65;
+            const isExtraLegroom = row === 1 || row === 12; // Exit rows
+            const price = isExtraLegroom ? 25 : 15;
+            
+            seatPrices[seatNum] = price;
+            
+            const classes = ['seat', 'available'];
+            if (isOccupied) classes.push('occupied');
+            if (isExtraLegroom) classes.push('extra-legroom');
+            
+            html += `<div class="${classes.join(' ')}" 
+                          data-seat="${seatNum}" 
+                          data-price="${price}"
+                          onclick="toggleSeat('${seatNum}', ${price})">
+                          ${letter}
+                     </div>`;
+            
+            // Aisle after C and before D
+            if (idx === 2) {
+                html += '<div class="aisle"></div>';
+            }
+        });
+        
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function toggleSeat(seatNumber, price) {
+    const seatElement = document.querySelector(`[data-seat="${seatNumber}"]`);
+    
+    if (seatElement.classList.contains('occupied')) {
+        return; // Can't select occupied seats
+    }
+    
+    if (selectedSeats.includes(seatNumber)) {
+        // Deselect
+        selectedSeats = selectedSeats.filter(s => s !== seatNumber);
+        seatElement.classList.remove('selected');
+    } else {
+        // Check if we've reached the passenger limit
+        if (selectedSeats.length >= totalPassengers) {
+            alert(`You can only select ${totalPassengers} seat(s) for ${totalPassengers} passenger(s)`);
+            return;
+        }
+        // Select
+        selectedSeats.push(seatNumber);
+        seatElement.classList.add('selected');
+    }
+    
+    updateSummary();
+}
+
+function updateSummary() {
+    const summary = document.getElementById('selected-summary');
+    const list = document.getElementById('selected-list');
+    const totalEl = document.getElementById('seat-total');
+    
+    if (selectedSeats.length === 0) {
+        // Show placeholder message when no seats selected
+        list.innerHTML = '<p style="color: rgba(0, 0, 0, 0.7); font-style: italic; margin: 0; font-size: 1rem; font-weight: 500;">No seats selected yet. Click on available seats to select them.</p>';
+        totalEl.textContent = 'Seat Total: $0.00';
+        return;
+    }
+    
+    // Update list
+    list.innerHTML = selectedSeats.map(seat => `
+        <div class="selected-seat-badge">
+            <span>Seat ${seat}</span>
+            <span class="remove-seat" onclick="toggleSeat('${seat}', ${seatPrices[seat]})">&times;</span>
+        </div>
+    `).join('');
+    
+    // Calculate total
+    const seatTotal = selectedSeats.reduce((sum, seat) => sum + (seatPrices[seat] || 0), 0);
+    const grandTotal = basePrice + seatTotal;
+    
+    totalEl.textContent = `Seat Total: $${seatTotal.toFixed(2)} | Grand Total: $${grandTotal.toFixed(2)}`;
+    
+    // Update hidden inputs
+    document.getElementById('selected-seats-input').value = selectedSeats.join(',');
+    document.getElementById('selected-seats-input-2').value = selectedSeats.join(',');
+    document.getElementById('total-price-input').value = grandTotal.toFixed(2);
+}
+
+// Load seatmap on page load
+document.addEventListener('DOMContentLoaded', loadSeatmap);
+</script>
+
+{% endblock %}

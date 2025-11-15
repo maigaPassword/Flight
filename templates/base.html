@@ -6,15 +6,20 @@
     <title>Skyvela ✈️ | Find Cheaper Flights</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body{% block body_class %}{% endblock %}>
 
     <!-- Navigation -->
     <header>
         <nav class="navbar">
             <div class="logo">Skyvela</div>
+            <button class="burger-menu" aria-label="Toggle navigation" aria-expanded="false" 
+                    onclick="this.classList.toggle('active'); document.querySelector('.nav-links').classList.toggle('active'); this.setAttribute('aria-expanded', this.classList.contains('active'));">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+            </button>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
-                <li><a href="/search">Search Flights</a></li>
                 <li><a href="/about">About</a></li>
                 <li><a href="/contact">Contact</a></li>
             </ul>
@@ -37,6 +42,11 @@
         <p>&copy; 2025 Skyvela Group 5 | Powered by Flask + Amadeus API</p>
     </footer>
 
+    <!-- Load airports data as global JavaScript variable -->
+    <script>
+        window.AIRPORTS = {{ (AIRPORTS or {}) | tojson | safe }};
+        console.log('✈️ Loaded', Object.keys(window.AIRPORTS || {}).length, 'airports');
+    </script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

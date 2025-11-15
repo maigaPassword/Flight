@@ -1,108 +1,788 @@
 {% extends "base.html" %}
-
 {% block content %}
-<section class="results-page">
+<style>
+/* Autocomplete input and dropdown fixes */
+.field.autocomplete {
+    position: relative !important;
+    z-index: 100 !important;
+    overflow: visible !important;
+}
+.field.autocomplete:focus-within {
+    z-index: 10000 !important;
+}
+.field.autocomplete input[type="text"] {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #03045e !important;
+    font-weight: 600 !important;
+}
+.field.autocomplete input[type="text"]:focus {
+    background: #ffffff !important;
+    color: #03045e !important;
+    border-color: #48cae4 !important;
+    box-shadow: 0 0 0 3px rgba(72, 202, 228, 0.2) !important;
+}
+.field.autocomplete input[type="text"]::placeholder {
+    color: rgba(3, 4, 94, 0.5) !important;
+}
 
-    <!-- ===== PAGE HEADER ===== -->
-    <h2>Search Flights</h2>
+/* Ensure autocomplete dropdown is visible */
+.airport-dropdown {
+    position: absolute !important;
+    z-index: 999999 !important;
+    display: none !important;
+}
+.airport-dropdown[style*="display: block"] {
+    display: block !important;
+}
 
-    <!-- ===== FLIGHT SEARCH FORM ===== -->
-    <form id="flightForm" class="search-form" method="POST" action="/search">
+/* Make sure top search form doesn't clip dropdown */
+.top-search-form {
+    overflow: visible !important;
+}
+.top-search-form .field {
+    overflow: visible !important;
+}
 
-        <!-- ===== ORIGIN INPUT ===== -->
-        <div class="autocomplete" style="position: relative;">
-            <input type="text" name="origin_display" id="origin" class="airport-input" placeholder="Origin" required autocomplete="off">
-            <input type="hidden" name="origin" id="origin_code">
-        </div>
+/* Ensure results-main and entire layout allows overflow */
+.results-main {
+    overflow: visible !important;
+}
+.flight-results-layout {
+    overflow: visible !important;
+}
 
-        <!-- ===== DESTINATION INPUT ===== -->
-        <div class="autocomplete" style="position: relative;">
-            <input type="text" name="destination_display" id="destination" class="airport-input" placeholder="Destination" required autocomplete="off">
-            <input type="hidden" name="destination" id="destination_code">
-        </div>
+/* Select Seats Button Styling */
+.select-seat-btn {
+    background: rgba(72, 202, 228, 0.15) !important;
+    border: 2px solid rgba(72, 202, 228, 0.5) !important;
+    color: #48cae4 !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
-        <!-- ===== DATE INPUT ===== -->
-        <input type="date" name="date" id="date" value="{{ searched_date }}" required>
+.select-seat-btn:hover {
+    background: rgba(72, 202, 228, 0.25) !important;
+    border-color: #48cae4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(72, 202, 228, 0.3);
+}
 
-        <!-- ===== SUBMIT BUTTON ===== -->
-        <button type="submit" class="btn">Search</button>
-    </form>
+.select-seat-btn:active {
+    transform: translateY(0);
+}
 
-    <!-- ===== DATE SLIDER ===== -->
-    <div id="date-slider-wrapper">
-        <button id="prev-date" class="slider-nav">&lt;</button>
-        <div id="date-slider-container" data-origin="{{ origin }}" data-destination="{{ destination }}">
-            {% for date in date_range %}
-                <button class="date-btn {% if date == searched_date %}active{% endif %}" data-date="{{ date }}">
-                    {{ date|format_date }}
-                    <br>
-                    <span class="min-price">
-                        {% if min_prices[date] is not none %}${{ "%.2f"|format(min_prices[date]) }}{% else %}-{% endif %}
-                    </span>
-                </button>
-            {% endfor %}
-        </div>
-        <button id="next-date" class="slider-nav">&gt;</button>
-    </div>
-
-    <!-- ===== FILTERS ===== -->
-    <div class="filters">
-        <label for="sort-options">Sort by:</label>
-        <select id="sort-options">
-            <option value="price">Price</option>
-            <option value="duration">Duration</option>
-            <option value="airline">Airline</option>
-        </select>
-    </div>
-
-    <!-- ===== FLIGHT RESULTS ===== -->
-    <div id="flights-container">
-        {% for flight in flights %}
-            <div class="flight-card"
-                data-offer-id="{{ flight.offer_id }}"
-                data-airline="{{ flight.airline_name }}"
-                data-logo="{{ flight.airline_logo }}"
-                data-origin="{{ flight.origin }}"
-                data-destination="{{ flight.destination }}"
-                data-price="{{ flight.price }}"
-                data-stops="{{ flight.stops_text }}"
-                data-segments='{{ flight.segments | tojson | safe }}'
-                data-flight='{{ flight | tojson | safe }}'>
-
-                <!-- ===== FLIGHT HEADER ===== -->
-                <div class="flight-header">
-                    {% if flight.airline_logo %}
-                        <img src="{{ flight.airline_logo }}" alt="{{ flight.airline_name }}" class="airline-logo">
-                    {% endif %}
-                    <h3>{{ flight.airline_name }}</h3>
-                    <p class="price">
-                        ${{ flight.fares_by_cabin.values() | map(attribute=0) | map(attribute='price') | min }}
-                    </p>
-                </div>
-
-                <!-- ===== FLIGHT ROUTE & STOPS ===== -->
-                <p class="route" data-origin="{{ flight.origin }}" data-destination="{{ flight.destination }}"></p>
-                <p class="stops"><strong>Stops:</strong> {{ flight.stops_text }}</p>
-
-                <!-- ===== FLIGHT ACTION BUTTONS ===== -->
-                <button class="select-btn">Select Flight</button>
-                <button class="show-more-btn select-btn">Show More</button>
+/* Adjust card-actions button layout */
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+</style>
+<div class="flight-results-page">
+    <div class="flight-results-layout">
+        <!-- Sidebar -->
+            <aside class="filters-sidebar">
+            <div class="time-remaining-box">
+                <h4>Time Remaining</h4>
+                <div id="searchTimer" class="search-timer" aria-live="polite">15:00</div>
             </div>
-        {% endfor %}
-    </div>
-</section>
-
-<!-- ===== POPUP MODAL FOR FLIGHT DETAILS ===== -->
-<div id="flightModal" class="flight-modal">
-    <div class="flight-modal-content">
-        <span class="flight-close-btn">&times;</span>
-        <div id="flightModalBody"></div>
+            <fieldset class="stops-filter">
+                <legend>Stops</legend>
+                <label class="radio"><input type="radio" name="stops" value="all" checked><span>All</span></label>
+                <label class="radio"><input type="radio" name="stops" value="Direct"><span>Direct</span></label>
+                <label class="radio"><input type="radio" name="stops" value="1 Stop"><span>1 Stop</span></label>
+            </fieldset>
+            <div class="price-range">
+                <div class="price-head"><h4>Price Range</h4><div class="price-values"><span id="priceMin">$0</span><span id="priceMax">$0</span></div></div>
+                <input type="range" id="priceSlider" min="0" max="0" value="0" step="1" />
+            </div>
+        </aside>
+            <main class="results-main">
+                <!-- Top Horizontal Search Form -->
+                <form id="flightForm" method="POST" action="/search" class="top-search-form">
+                    <div class="field group">
+                        <label for="trip_type" class="sr-only">Trip Type</label>
+                        <select name="trip_type" id="trip_type">
+                            <option value="oneway" {% if (trip_type or 'oneway') == 'oneway' %}selected{% endif %}>One-way</option>
+                            <option value="roundtrip" {% if (trip_type or '') == 'roundtrip' %}selected{% endif %}>Round-trip</option>
+                        </select>
+                    </div>
+                    <div class="field autocomplete">
+                        <label for="origin" class="sr-only">Origin</label>
+                        <input type="text" name="origin_display" id="origin" placeholder="Origin" required autocomplete="off">
+                        <input type="hidden" name="origin" id="origin_code">
+                    </div>
+                    <div class="field autocomplete">
+                        <label for="destination" class="sr-only">Destination</label>
+                        <input type="text" name="destination_display" id="destination" placeholder="Destination" required autocomplete="off">
+                        <input type="hidden" name="destination" id="destination_code">
+                    </div>
+                    <div class="field">
+                        <label for="date" class="sr-only">Departure Date</label>
+                        <input type="date" name="date" id="date" value="{{ searched_date }}" required>
+                    </div>
+                    <div class="field {% if (trip_type or 'oneway') == 'roundtrip' %}show{% else %}hide{% endif %}" id="return-date-wrapper">
+                        <label for="return_date" class="sr-only">Return Date</label>
+                        <input type="date" name="return_date" id="return_date" value="{{ return_date or '' }}" {% if (trip_type or 'oneway') == 'roundtrip' %}required{% endif %}>
+                    </div>
+                    <div class="actions">
+                        <button type="submit" class="search-submit-btn">Search</button>
+                    </div>
+                </form>
+                <!-- Sorting Bar -->
+            <div class="sorting-bar" role="group" aria-label="Sort flights">
+                <button type="button" class="sort-btn active" data-sort="asc">Lowest to Higher</button>
+                <button type="button" class="sort-btn" data-sort="desc">Highest to Lower</button>
+            </div>
+            <div id="flightsList" class="flights-list" aria-live="polite">
+                {% for flight in flights %}
+                {% set lowest_price = flight.fares_by_cabin.values() | map(attribute=0) | map(attribute='price') | min %}
+                <article class="flight-card" data-price="{{ lowest_price }}" data-stops="{{ flight.stops_text }}" data-flight='{{ flight | tojson | safe }}'>
+                    <div class="card-grid">
+                        <div class="card-main">
+                            <div class="rail-itinerary" aria-label="Departure and arrival summary">
+                                <div class="rail-side origin">
+                                    <div class="code">{{ flight.origin }}</div>
+                                    <div class="time">{{ flight.departure[11:16] if flight.departure else flight.depart_time }}</div>
+                                    <div class="airport">{{ AIRPORTS.get(flight.origin, {}).get('city', '') }} ({{ flight.origin }})</div>
+                                </div>
+                                <div class="rail-center" aria-hidden="true">
+                                    <div class="rail-line"><span class="dot"></span><span class="bar"></span><span class="dot"></span></div>
+                                    <div class="meta">{{ flight.duration }} • {{ flight.stops_text }}</div>
+                                </div>
+                                <div class="rail-side destination">
+                                    <div class="code">{{ flight.destination }}</div>
+                                    <div class="time">{{ flight.arrival[11:16] if flight.arrival else flight.arrive_time }}</div>
+                                    <div class="airport">{{ AIRPORTS.get(flight.destination, {}).get('city', '') }} ({{ flight.destination }})
+                                        {% if flight.departure and flight.arrival and flight.departure[0:10] != flight.arrival[0:10] %}
+                                            <span class="next-day" title="Arrives different day">+1d</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="airline-meta">
+                                <div class="airline-row">{% if flight.airline_logo %}<img src="{{ flight.airline_logo }}" alt="{{ flight.airline_name }}" class="airline-icon">{% endif %}<span class="airline-name">{{ flight.airline_name }}</span></div>
+                                <div class="flight-number">Offer #{{ flight.offer_id }}</div>
+                                <div class="route-text">{{ flight.origin }}–{{ flight.destination }}</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <div class="price-line">From <strong class="price-amount">USD {{ '%.2f'|format(lowest_price) }}</strong></div>
+                            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                <button type="button" class="details-toggle-btn" aria-expanded="false" aria-controls="details-{{ loop.index }}" style="flex: 1;">Details</button>
+                                <button type="button" class="select-seat-btn" 
+                                        data-flight-index="{{ loop.index }}" 
+                                        data-flight='{{ flight | tojson | safe }}'
+                                        style="flex: 1; background: rgba(72, 202, 228, 0.15) !important; border: 2px solid rgba(72, 202, 228, 0.5) !important; color: #48cae4 !important; font-weight: 600;">
+                                    Select Seats
+                                </button>
+                            </div>
+                            {% if (trip_type or 'oneway') == 'roundtrip' %}
+                            <button type="button" class="select-outbound-btn" 
+                                    data-flight-index="{{ loop.index }}" 
+                                    data-flight='{{ flight | tojson | safe }}'
+                                    data-origin="{{ origin }}"
+                                    data-destination="{{ destination }}"
+                                    data-return-date="{{ return_date }}">Select Flight</button>
+                            {% else %}
+                            <button type="button" class="select-oneway-btn" 
+                                    data-flight-index="{{ loop.index }}" 
+                                    data-flight='{{ flight | tojson | safe }}'>Select Flight</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flight-card-details" id="details-{{ loop.index }}" hidden>
+                        <div class="details-inner">
+                            <div class="details-header-row">
+                                <span class="details-title">Flight Details</span>
+                                <span class="details-duration"><strong>Duration:</strong> {{ flight.duration }}</span>
+                                <span class="details-stops"><strong>Stops:</strong> {{ flight.stops_text }}</span>
+                            </div>
+                            {% if flight.segments %}
+                            <ul class="segment-breakdown">
+                                {% for seg in flight.segments %}
+                                <li class="segment-row">
+                                    <div class="seg-times">
+                                        <span class="seg-dep">
+                                            <strong>{{ seg.origin }}</strong>
+                                            <span class="seg-city" data-code="{{ seg.origin }}"></span>
+                                            {{ seg.departure }}
+                                        </span>
+                                        <span class="seg-arrow">→</span>
+                                        <span class="seg-arr">
+                                            <strong>{{ seg.destination }}</strong>
+                                            <span class="seg-city" data-code="{{ seg.destination }}"></span>
+                                            {{ seg.arrival }}
+                                        </span>
+                                    </div>
+                                    <div class="seg-meta">
+                                        {% if seg.duration %}<span class="seg-leg-dur">{{ seg.duration }}</span>{% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            <div class="details-footer-row">
+                                <span class="detail-note">All times local • Prices subject to availability</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+                
+                {% if flights|length == 0 %}
+                <div style="text-align: center; padding: 4rem 2rem; color: #666;">
+                    <h2 style="color: #0077b6; margin-bottom: 1rem;">No flights found</h2>
+                    <p>Try searching for different airports or dates.</p>
+                    <p style="margin-top: 1rem;"><strong>Debug Info:</strong><br>
+                    Origin: {{ origin or 'Not set' }}<br>
+                    Destination: {{ destination or 'Not set' }}<br>
+                    Date: {{ searched_date or 'Not set' }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </main>
     </div>
 </div>
 
-<!-- ===== JAVASCRIPT VARIABLES ===== -->
-<script>
-const AIRPORTS = {{ AIRPORTS | tojson | safe }};
-</script>
+<!-- Cabin Selection Modal -->
+<div id="cabinModal" class="cabin-modal" hidden>
+    <div class="cabin-modal-overlay"></div>
+    <div class="cabin-modal-content">
+        <div class="cabin-modal-header">
+            <h2>Select Cabin Class</h2>
+            <button class="cabin-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="cabin-modal-body">
+            <p class="cabin-instruction">Choose your preferred cabin class for this flight:</p>
+            <div id="cabinOptions" class="cabin-options"></div>
+        </div>
+        <form id="cabinOutboundForm" method="POST" action="/select_return" hidden>
+            <input type="hidden" name="outbound_json" id="selectedOutboundJson" value=''>
+            <input type="hidden" name="cabin_out" id="selectedCabinOut" value="">
+            <input type="hidden" name="origin" id="formOrigin" value="">
+            <input type="hidden" name="destination" id="formDestination" value="">
+            <input type="hidden" name="return_date" id="formReturnDate" value="">
+        </form>
+        <form id="cabinOnewayForm" method="POST" action="/flight_summary" hidden>
+            <input type="hidden" name="outbound_json" id="selectedOnewayJson" value=''>
+            <input type="hidden" name="cabin_out" id="selectedCabinOneway" value="">
+        </form>
+    </div>
+</div>
 
+<div id="flightModal" class="flight-modal" hidden>
+    <div class="flight-modal-content">
+        <button class="flight-close-btn" aria-label="Close">&times;</button>
+        <div id="flightModalBody"></div>
+    </div>
+</div>
+<script>
+    console.log('🟢 SCRIPT TAG LOADED');
+    window.AIRPORTS = {{ AIRPORTS | tojson | safe }};
+    window.COUNTRY_NAMES = {{ COUNTRY_NAMES | tojson | safe }};
+    console.log('🟢 AIRPORTS injected:', Object.keys(window.AIRPORTS).length, 'airports');
+    
+    // ========================================
+    // AIRPORT AUTOCOMPLETE - Uses window.AIRPORTS
+    // ========================================
+    (function() {
+        console.log('🔵 AUTOCOMPLETE FUNCTION STARTED');
+        
+        // Use the airports already loaded from Flask
+        const airportsData = window.AIRPORTS || {};
+        const airportsList = Object.keys(airportsData).map(iata => ({
+            iata: iata,
+            city: airportsData[iata].city || '',
+            name: airportsData[iata].name || '',
+            country: airportsData[iata].country || '',
+        }));
+        
+        console.log('✈️ Loaded', airportsList.length, 'airports from window.AIRPORTS');
+                
+        // Setup autocomplete for both inputs
+        setupAutocomplete('origin');
+        setupAutocomplete('destination');
+        
+        function setupAutocomplete(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) {
+                console.log('❌ Input not found:', inputId);
+                return;
+            }
+            
+            console.log('✅ Setting up autocomplete for:', inputId);
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'airport-dropdown';
+            dropdown.style.cssText = `
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: #ffffff;
+                border: 2px solid #48cae4;
+                border-radius: 12px;
+                margin-top: 4px;
+                max-height: 350px;
+                overflow-y: auto;
+                display: none;
+                z-index: 999999;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(72, 202, 228, 0.3);
+            `;
+            
+            input.parentElement.appendChild(dropdown);
+            
+            let debounceTimer;
+            
+            input.addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                clearTimeout(debounceTimer);
+                
+                if (keyword.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                
+                debounceTimer = setTimeout(() => {
+                    const matches = airportsList.filter(airport => 
+                        airport.iata.toLowerCase().includes(keyword) ||
+                        airport.city.toLowerCase().includes(keyword) ||
+                        airport.name.toLowerCase().includes(keyword)
+                    ).slice(0, 8);
+                    
+                    dropdown.innerHTML = '';
+                    
+                    if (matches.length === 0) {
+                        dropdown.innerHTML = `<div style="padding: 20px; text-align: center; color: #023e8a; font-weight: 500;">No airports found</div>`;
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+                    
+                    matches.forEach(airport => {
+                        const item = document.createElement('div');
+                        item.style.cssText = `
+                            padding: 14px 18px;
+                            cursor: pointer;
+                            border-bottom: 1px solid rgba(72, 202, 228, 0.3);
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            transition: all 0.3s ease;
+                            background: transparent;
+                        `;
+                        
+                        const location = airport.city + (airport.state ? `, ${airport.state}` : '') + (airport.country ? `, ${airport.country}` : '');
+                        
+                        item.innerHTML = `
+                            <div style="
+                                background: linear-gradient(135deg, #0077b6, #00b4d8);
+                                border: 2px solid #48cae4;
+                                border-radius: 8px;
+                                padding: 8px 12px;
+                                font-weight: 700;
+                                color: #ffffff;
+                                min-width: 50px;
+                                text-align: center;
+                                font-size: 0.95rem;
+                                letter-spacing: 0.5px;
+                                box-shadow: 0 2px 8px rgba(72, 202, 228, 0.3);
+                            ">${airport.iata}</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="color: #03045e; font-weight: 600; font-size: 0.95rem; margin-bottom: 3px;">${location}</div>
+                                <div style="color: #023e8a; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8;">${airport.name}</div>
+                            </div>
+                        `;
+                        
+                        item.onmouseenter = () => {
+                            item.style.background = 'linear-gradient(135deg, rgba(72, 202, 228, 0.15), rgba(0, 180, 216, 0.1))';
+                            item.style.borderLeft = '4px solid #0077b6';
+                            item.style.paddingLeft = '14px';
+                        };
+                        item.onmouseleave = () => {
+                            item.style.background = 'transparent';
+                            item.style.borderLeft = 'none';
+                            item.style.paddingLeft = '18px';
+                        };
+                        
+                        item.onclick = () => {
+                            // Format: "City, Country - Airport Name (CODE)"
+                            const displayText = `${airport.city}${airport.country ? ', ' + airport.country : ''} - ${airport.name} (${airport.iata})`;
+                            input.value = displayText;
+                            
+                            // Also set the hidden code field
+                            const codeField = document.getElementById(inputId + '_code');
+                            if (codeField) {
+                                codeField.value = airport.iata;
+                            }
+                            
+                            dropdown.style.display = 'none';
+                        };
+                        
+                        dropdown.appendChild(item);
+                    });
+                    
+                    dropdown.style.display = 'block';
+                }, 250);
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+    })();
+    
+    const modifyBtn = document.getElementById('modifySearchBtn');
+    const modifyPanel = document.getElementById('modifySearchPanel');
+    modifyBtn?.addEventListener('click', () => { const hidden = modifyPanel.hasAttribute('hidden'); hidden ? modifyPanel.removeAttribute('hidden') : modifyPanel.setAttribute('hidden',''); modifyBtn.classList.toggle('open'); });
+    const timerEl = document.getElementById('searchTimer'); let remaining = 15*60; setInterval(()=>{ if(remaining<0) return; remaining--; const m=String(Math.floor(remaining/60)).padStart(2,'0'); const s=String(remaining%60).padStart(2,'0'); timerEl.textContent=`${m}:${s}`; },1000);
+    const cards=[...document.querySelectorAll('.flight-card')]; const prices=cards.map(c=>Number(c.dataset.price)); const priceSlider=document.getElementById('priceSlider'); const priceMinEl=document.getElementById('priceMin'); const priceMaxEl=document.getElementById('priceMax'); if(prices.length){ const minP=Math.min(...prices); const maxP=Math.max(...prices); priceSlider.min=minP; priceSlider.max=maxP; priceSlider.value=maxP; priceMinEl.textContent=`$${minP.toFixed(0)}`; priceMaxEl.textContent=`$${maxP.toFixed(0)}`; }
+    function applyFilters(){ const selStops=document.querySelector('input[name="stops"]:checked').value; const maxPrice=Number(priceSlider.value); cards.forEach(card=>{ const okStops= selStops==='all'|| card.dataset.stops===selStops; const okPrice= Number(card.dataset.price)<=maxPrice; card.style.display= okStops && okPrice ? '' : 'none'; }); }
+    document.querySelectorAll('input[name="stops"]').forEach(r=>r.addEventListener('change',applyFilters)); priceSlider.addEventListener('input',applyFilters);
+    document.querySelectorAll('.sort-btn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const order=btn.dataset.sort; const sorted=[...cards].sort((a,b)=> order==='asc'? a.dataset.price-b.dataset.price : b.dataset.price-a.dataset.price); const list=document.getElementById('flightsList'); sorted.forEach(c=>list.appendChild(c)); }));
+    document.addEventListener('click',e=>{ if(e.target.classList.contains('flight-close-btn')){ document.getElementById('flightModal').setAttribute('hidden',''); } });
+    // Details toggle
+    document.querySelectorAll('.details-toggle-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const panel = document.getElementById(btn.getAttribute('aria-controls'));
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            if(expanded){ panel.setAttribute('hidden',''); btn.setAttribute('aria-expanded','false'); }
+            else { panel.removeAttribute('hidden'); btn.setAttribute('aria-expanded','true'); }
+        });
+    });
+    
+    // Populate airport city names in segment details
+    document.querySelectorAll('.seg-city').forEach(el=>{
+        const code = el.dataset.code;
+        const airport = window.AIRPORTS[code];
+        if(airport){
+            const countryCode = airport.country;
+            const countryName = window.COUNTRY_NAMES[countryCode] || countryCode;
+            el.textContent = ` (${airport.city}${countryName ? ', ' + countryName : ''})`;
+        }
+    });
+    
+    // Format dates and times in segment details
+    document.querySelectorAll('.seg-dep, .seg-arr').forEach(el=>{
+        const timeEl = el.childNodes[el.childNodes.length - 1];
+        if(timeEl && timeEl.nodeType === Node.TEXT_NODE){
+            const dateStr = timeEl.textContent.trim();
+            if(dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)){
+                const date = new Date(dateStr);
+                const formatted = date.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                timeEl.textContent = ' ' + formatted;
+            }
+        }
+    });
+    
+    // Cabin Selection Modal Logic
+    const cabinModal = document.getElementById('cabinModal');
+    const cabinCloseBtn = document.querySelector('.cabin-close-btn');
+    const cabinOverlay = document.querySelector('.cabin-modal-overlay');
+    const cabinOptions = document.getElementById('cabinOptions');
+    
+    console.log('Search page - Cabin modal elements:', {
+        cabinModal,
+        cabinCloseBtn,
+        cabinOverlay,
+        cabinOptions
+    });
+    
+    // For roundtrip flights
+    const cabinOutboundForm = document.getElementById('cabinOutboundForm');
+    const selectedOutboundJson = document.getElementById('selectedOutboundJson');
+    const selectedCabinOut = document.getElementById('selectedCabinOut');
+    const formOrigin = document.getElementById('formOrigin');
+    const formDestination = document.getElementById('formDestination');
+    const formReturnDate = document.getElementById('formReturnDate');
+    
+    // For one-way flights
+    const cabinOnewayForm = document.getElementById('cabinOnewayForm');
+    const selectedOnewayJson = document.getElementById('selectedOnewayJson');
+    const selectedCabinOneway = document.getElementById('selectedCabinOneway');
+    
+    let isRoundtrip = false;
+    
+    function showCabinModal(flightData, isRound, origin, destination, returnDate) {
+        console.log('showCabinModal called', { flightData, isRound, origin, destination, returnDate });
+        
+        isRoundtrip = isRound;
+        const faresByCabin = flightData.fares_by_cabin || {};
+        
+        console.log('Fares by cabin:', faresByCabin);
+        
+        // Store flight data
+        if (isRoundtrip) {
+            selectedOutboundJson.value = JSON.stringify(flightData);
+            formOrigin.value = origin;
+            formDestination.value = destination;
+            formReturnDate.value = returnDate;
+        } else {
+            selectedOnewayJson.value = JSON.stringify(flightData);
+        }
+        
+        // Build cabin options
+        cabinOptions.innerHTML = '';
+        const cabinNames = {
+            'ECONOMY': 'Economy',
+            'PREMIUM_ECONOMY': 'Premium Economy',
+            'BUSINESS': 'Business',
+            'FIRST': 'First Class'
+        };
+        
+        const availableCabins = Object.keys(faresByCabin).sort((a, b) => {
+            const order = ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'];
+            return order.indexOf(a) - order.indexOf(b);
+        });
+        
+        console.log('Available cabins:', availableCabins);
+        
+        if (availableCabins.length === 0) {
+            cabinOptions.innerHTML = '<p class="no-cabins">No cabin options available for this flight.</p>';
+        } else {
+            availableCabins.forEach(cabin => {
+                const fares = faresByCabin[cabin];
+                if (fares && fares.length > 0) {
+                    const fare = fares[0];
+                    const price = fare.price;
+                    
+                    // Cabin details based on class
+                    const cabinDetails = {
+                        'ECONOMY': {
+                            name: 'Economy',
+                            subtitle: 'Standard / Basic',
+                            description: 'Lowest price, minimal amenities',
+                            icon: '💺',
+                            features: ['Standard seat', 'Carry-on included', 'Snacks & beverages', 'Standard boarding'],
+                            seatPitch: '31-32"',
+                            baggage: fare.includedCheckedBags?.quantity || 0,
+                            refundable: false
+                        },
+                        'PREMIUM_ECONOMY': {
+                            name: 'Premium Economy',
+                            subtitle: 'Enhanced Comfort',
+                            description: 'Extra legroom, priority boarding, better meals',
+                            icon: '🪑',
+                            features: ['Extra legroom', 'Priority boarding', 'Enhanced meals', 'More recline', 'Premium beverages'],
+                            seatPitch: '38-40"',
+                            baggage: fare.includedCheckedBags?.quantity || 1,
+                            refundable: false
+                        },
+                        'BUSINESS': {
+                            name: 'Business Class',
+                            subtitle: 'Executive',
+                            description: 'Lie-flat seats, lounge access, premium meals',
+                            icon: '✈️',
+                            features: ['Lie-flat seats', 'Lounge access', 'Premium dining', 'Priority check-in', 'Extra baggage'],
+                            seatPitch: '60-78"',
+                            baggage: fare.includedCheckedBags?.quantity || 2,
+                            refundable: true
+                        },
+                        'FIRST': {
+                            name: 'First Class',
+                            subtitle: 'Suites / Luxury',
+                            description: 'Top-tier luxury, private suites, fine dining',
+                            icon: '👑',
+                            features: ['Private suites', 'Fine dining', 'Premium service', 'Chauffeur service', 'Priority everything'],
+                            seatPitch: '80+"',
+                            baggage: fare.includedCheckedBags?.quantity || 3,
+                            refundable: true
+                        }
+                    };
+                    
+                    const details = cabinDetails[cabin] || cabinDetails['ECONOMY'];
+                    
+                    const cabinCard = document.createElement('div');
+                    cabinCard.className = 'cabin-option';
+                    cabinCard.innerHTML = `
+                        <div class="cabin-icon">${details.icon}</div>
+                        <div class="cabin-info">
+                            <div class="cabin-header">
+                                <div class="cabin-title-group">
+                                    <h3>${details.name}</h3>
+                                    <span class="cabin-subtitle">${details.subtitle}</span>
+                                </div>
+                                <div class="cabin-price-group">
+                                    <div class="cabin-price">$${parseFloat(price).toFixed(2)}</div>
+                                    <span class="cabin-price-label">per person</span>
+                                </div>
+                            </div>
+                            <p class="cabin-description">${details.description}</p>
+                            <div class="cabin-features">
+                                ${details.features.map(f => `<span class="feature-tag">✓ ${f}</span>`).join('')}
+                                <span class="feature-tag">🧳 ${details.baggage} checked bag${details.baggage !== 1 ? 's' : ''} included</span>
+                                <span class="feature-tag">${details.refundable ? '✅ Refundable' : '❌ Non-refundable'}</span>
+                            </div>
+                        </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">�</span>
+                                    <div class="detail-text">
+                                        <span class="detail-label">Checked Bags</span>
+                                        <span class="detail-value baggage-value">${details.baggage} included</span>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-icon">${details.refundable ? '✅' : '❌'}</span>
+                                    <div class="detail-text">
+                                        <span class="detail-label">Refundable</span>
+                                        <span class="detail-value">${details.refundable ? 'Yes' : 'No'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="cabin-select-btn" data-cabin="${cabin}">
+                            Select ${details.name}
+                        </button>
+                    `;
+                    cabinOptions.appendChild(cabinCard);
+                }
+            });
+            
+            // Add click handlers to cabin select buttons
+            document.querySelectorAll('.cabin-select-btn').forEach(selectBtn => {
+                selectBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Cabin selected:', selectBtn.dataset.cabin);
+                    
+                    if (isRoundtrip) {
+                        selectedCabinOut.value = selectBtn.dataset.cabin;
+                        cabinOutboundForm.submit();
+                    } else {
+                        selectedCabinOneway.value = selectBtn.dataset.cabin;
+                        cabinOnewayForm.submit();
+                    }
+                });
+            });
+        }
+        
+        // Show modal
+        console.log('Showing cabin modal');
+        cabinModal.removeAttribute('hidden');
+        cabinModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Handle roundtrip flight selection
+    document.querySelectorAll('.select-outbound-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Outbound select button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            const origin = btn.dataset.origin;
+            const destination = btn.dataset.destination;
+            const returnDate = btn.dataset.returnDate;
+            showCabinModal(flightData, true, origin, destination, returnDate);
+        });
+    });
+    
+    // Handle one-way flight selection
+    document.querySelectorAll('.select-oneway-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Oneway select button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            showCabinModal(flightData, false);
+        });
+    });
+    
+    // Handle seat selection button
+    document.querySelectorAll('.select-seat-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Seat selection button clicked');
+            
+            const flightData = JSON.parse(btn.dataset.flight);
+            
+            // Create a form to submit to seat selection page
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/seat_selection';
+            
+            // Add flight data as hidden input
+            const flightInput = document.createElement('input');
+            flightInput.type = 'hidden';
+            flightInput.name = 'outbound_json';
+            flightInput.value = JSON.stringify(flightData);
+            form.appendChild(flightInput);
+            
+            // Add trip type
+            const tripTypeInput = document.createElement('input');
+            tripTypeInput.type = 'hidden';
+            tripTypeInput.name = 'trip_type';
+            tripTypeInput.value = '{{ trip_type or "oneway" }}';
+            form.appendChild(tripTypeInput);
+            
+            // Add passenger counts
+            const adultsInput = document.createElement('input');
+            adultsInput.type = 'hidden';
+            adultsInput.name = 'adults';
+            adultsInput.value = '{{ adults or 1 }}';
+            form.appendChild(adultsInput);
+            
+            const childrenInput = document.createElement('input');
+            childrenInput.type = 'hidden';
+            childrenInput.name = 'children';
+            childrenInput.value = '{{ children or 0 }}';
+            form.appendChild(childrenInput);
+            
+            const infantsInput = document.createElement('input');
+            infantsInput.type = 'hidden';
+            infantsInput.name = 'infants';
+            infantsInput.value = '{{ infants or 0 }}';
+            form.appendChild(infantsInput);
+            
+            // Submit form
+            document.body.appendChild(form);
+            form.submit();
+        });
+    });
+    
+    // Close modal handlers
+    function closeCabinModal() {
+        console.log('Closing cabin modal');
+        cabinModal.setAttribute('hidden', '');
+        cabinModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    if (cabinCloseBtn) {
+        cabinCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Close button clicked');
+            closeCabinModal();
+        });
+    }
+    
+    if (cabinOverlay) {
+        cabinOverlay.addEventListener('click', (e) => {
+            console.log('Overlay clicked');
+            closeCabinModal();
+        });
+    }
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !cabinModal.hasAttribute('hidden')) {
+            console.log('Escape key pressed');
+            closeCabinModal();
+        }
+    });
+</script>
 {% endblock %}

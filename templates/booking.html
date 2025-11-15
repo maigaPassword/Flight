@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+{% block title %}Complete Your Booking{% endblock %}
+
+{% block content %}
+<section class="results-page">
+  <div class="booking-header">
+    <h2>Complete Your Booking</h2>
+    <p class="booking-subtitle">Just a few more details and you're ready to fly!</p>
+  </div>
+
+  <div class="booking-layout">
+    <!-- Left: Passenger Details Form -->
+    <div class="booking-main">
+      <form id="bookingForm">
+        <!-- Hidden fields for flight data -->
+        <input type="hidden" name="outbound_json" id="outbound_json" value='{{ outbound | tojson | safe }}'>
+        {% if return_flight %}
+          <input type="hidden" name="return_json" id="return_json" value='{{ return_flight | tojson | safe }}'>
+          <input type="hidden" name="cabin_ret" id="cabin_ret" value="{{ cabin_ret }}">
+        {% endif %}
+        <input type="hidden" name="cabin_out" id="cabin_out" value="{{ cabin_out }}">
+        <input type="hidden" name="total_price" id="total_price" value="{{ total_price }}">
+
+        <!-- Passenger Information Section -->
+        <div class="booking-section">
+          <div class="section-header">
+            <h3>Passenger Information ({{ total_passengers }} Passenger{{ 's' if total_passengers > 1 else '' }})</h3>
+          </div>
+          
+          <!-- Adult Passengers -->
+          {% for i in range(adults) %}
+          <div class="passenger-card">
+            <h4>Adult {{ i + 1 }}</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="adult_{{ i }}_first_name">First Name <span class="required">*</span></label>
+                <input type="text" id="adult_{{ i }}_first_name" name="adult_{{ i }}_first_name" required 
+                       placeholder="First name">
+              </div>
+              <div class="form-group">
+                <label for="adult_{{ i }}_last_name">Last Name <span class="required">*</span></label>
+                <input type="text" id="adult_{{ i }}_last_name" name="adult_{{ i }}_last_name" required 
+                       placeholder="Last name">
+              </div>
+              <div class="form-group">
+                <label for="adult_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
+                <input type="date" id="adult_{{ i }}_dob" name="adult_{{ i }}_dob" required>
+              </div>
+              <div class="form-group">
+                <label for="adult_{{ i }}_passport">Passport Number</label>
+                <input type="text" id="adult_{{ i }}_passport" name="adult_{{ i }}_passport" 
+                       placeholder="Optional">
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          
+          <!-- Child Passengers -->
+          {% for i in range(children) %}
+          <div class="passenger-card child-passenger">
+            <h4>Child {{ i + 1 }} <span class="passenger-tag">2-11 years</span></h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="child_{{ i }}_first_name">First Name <span class="required">*</span></label>
+                <input type="text" id="child_{{ i }}_first_name" name="child_{{ i }}_first_name" required 
+                       placeholder="First name">
+              </div>
+              <div class="form-group">
+                <label for="child_{{ i }}_last_name">Last Name <span class="required">*</span></label>
+                <input type="text" id="child_{{ i }}_last_name" name="child_{{ i }}_last_name" required 
+                       placeholder="Last name">
+              </div>
+              <div class="form-group">
+                <label for="child_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
+                <input type="date" id="child_{{ i }}_dob" name="child_{{ i }}_dob" required>
+              </div>
+              <div class="form-group">
+                <label for="child_{{ i }}_passport">Passport Number</label>
+                <input type="text" id="child_{{ i }}_passport" name="child_{{ i }}_passport" 
+                       placeholder="Optional">
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          
+          <!-- Infant Passengers -->
+          {% for i in range(infants) %}
+          <div class="passenger-card infant-passenger">
+            <h4>Infant {{ i + 1 }} <span class="passenger-tag">Under 2 years</span></h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="infant_{{ i }}_first_name">First Name <span class="required">*</span></label>
+                <input type="text" id="infant_{{ i }}_first_name" name="infant_{{ i }}_first_name" required 
+                       placeholder="First name">
+              </div>
+              <div class="form-group">
+                <label for="infant_{{ i }}_last_name">Last Name <span class="required">*</span></label>
+                <input type="text" id="infant_{{ i }}_last_name" name="infant_{{ i }}_last_name" required 
+                       placeholder="Last name">
+              </div>
+              <div class="form-group">
+                <label for="infant_{{ i }}_dob">Date of Birth <span class="required">*</span></label>
+                <input type="date" id="infant_{{ i }}_dob" name="infant_{{ i }}_dob" required>
+              </div>
+              <div class="form-group">
+                <label for="infant_{{ i }}_passport">Passport Number</label>
+                <input type="text" id="infant_{{ i }}_passport" name="infant_{{ i }}_passport" 
+                       placeholder="Optional">
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          
+          <!-- Contact Information -->
+          <div class="passenger-card contact-info">
+            <h4>Contact Information</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="email">Email Address <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="your.email@example.com">
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="phone" name="phone" required 
+                       placeholder="+1 (555) 000-0000">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Information Section -->
+        <div class="booking-section">
+          <div class="section-header">
+            <h3>Payment Information</h3>
+          </div>
+          
+          <!-- Stripe Card Element -->
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="card-element">Card Details <span class="required">*</span></label>
+              <div id="card-element" class="stripe-card-element">
+                <!-- Stripe.js injects the Card Element here -->
+              </div>
+              <div id="card-errors" role="alert" class="card-errors"></div>
+            </div>
+            <div class="form-group full-width">
+              <label for="billing_address">Billing Address <span class="required">*</span></label>
+              <input type="text" id="billing_address" name="billing_address" required 
+                     placeholder="Street address, City, State, ZIP">
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms and Conditions -->
+        <div class="booking-section">
+          <div class="terms-box">
+            <label class="checkbox-label">
+              <input type="checkbox" id="terms" name="terms" required>
+              <span>I agree to the <a href="#" class="terms-link">Terms & Conditions</a> and <a href="#" class="terms-link">Privacy Policy</a></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="booking-actions">
+          <a href="{{ url_for('search') }}" class="btn-secondary">Cancel</a>
+          <button type="submit" class="btn-primary" id="submit-button">
+            <span id="button-text">Complete Booking</span>
+            <div id="spinner" class="spinner hidden"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right: Booking Summary -->
+    <aside class="booking-sidebar">
+      <div class="summary-sticky">
+        <div class="booking-card">
+          <div class="summary-header">
+            <h3>Booking Summary</h3>
+          </div>
+
+          <!-- Trip Route -->
+          <div class="trip-route">
+            <div class="route-item">
+              <div class="route-details">
+                <div class="route-label">Outbound</div>
+                <div class="route-cities">{{ origin_city }} → {{ destination_city }}</div>
+                <div class="route-date">{{ outbound.departure | date_compact }}</div>
+                <div class="route-cabin">{{ cabin_out }}</div>
+              </div>
+            </div>
+            {% if return_flight %}
+            <div class="route-divider"></div>
+            <div class="route-item">
+              <div class="route-details">
+                <div class="route-label">Return</div>
+                <div class="route-cities">{{ destination_city }} → {{ origin_city }}</div>
+                <div class="route-date">{{ return_flight.departure | date_compact }}</div>
+                <div class="route-cabin">{{ cabin_ret }}</div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Price Breakdown -->
+          <div class="price-breakdown">
+            <!-- Passenger Breakdown -->
+            <div class="passengers-summary">
+              <div class="passengers-header">Passengers</div>
+              {% if adults > 0 %}
+              <div class="price-row passenger-row">
+                <span>{{ adults }} Adult{{ 's' if adults > 1 else '' }}</span>
+                <span>${{ "%.2f" | format(adult_price|float * adults) }}</span>
+              </div>
+              {% endif %}
+              {% if children > 0 %}
+              <div class="price-row passenger-row">
+                <span>{{ children }} Child{{ 'ren' if children > 1 else '' }} (75%)</span>
+                <span>${{ "%.2f" | format(child_price|float * children) }}</span>
+              </div>
+              {% endif %}
+              {% if infants > 0 %}
+              <div class="price-row passenger-row">
+                <span>{{ infants }} Infant{{ 's' if infants > 1 else '' }} (10%)</span>
+                <span>${{ "%.2f" | format(infant_price|float * infants) }}</span>
+              </div>
+              {% endif %}
+            </div>
+            
+            <!-- Seat Selection Breakdown -->
+            {% if selected_seats and selected_seats != '' %}
+            <div class="seats-summary">
+              <div class="seats-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;">
+                  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                  <rect x="9" y="9" width="6" height="6"></rect>
+                  <path d="M9 1v3"></path>
+                  <path d="M15 1v3"></path>
+                  <path d="M9 20v3"></path>
+                  <path d="M15 20v3"></path>
+                </svg>
+                Selected Seats
+              </div>
+              {% set seat_total = 0 %}
+              {% for seat_info in selected_seats.split(',') if seat_info %}
+                {% set seat_parts = seat_info.split(':') %}
+                {% if seat_parts|length == 2 %}
+                  {% set seat_number = seat_parts[0] %}
+                  {% set seat_price = seat_parts[1]|float %}
+                  {% set seat_total = seat_total + seat_price %}
+                  <div class="price-row seat-row">
+                    <span>Seat {{ seat_number }}</span>
+                    <span>${{ "%.2f" | format(seat_price) }}</span>
+                  </div>
+                {% endif %}
+              {% endfor %}
+              <div class="price-row seat-total">
+                <span><strong>Seats Subtotal</strong></span>
+                <span><strong>${{ "%.2f" | format(seat_total) }}</strong></span>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if base_total %}
+            <div class="price-row">
+              <span>Fare subtotal</span>
+              <span>${{ base_total }}</span>
+            </div>
+            {% endif %}
+            {% if taxes_total %}
+            <div class="price-row">
+              <span>Taxes & fees</span>
+              <span>${{ taxes_total }}</span>
+            </div>
+            {% else %}
+            <div class="price-row">
+              <span>Taxes & fees</span>
+              <span>Included</span>
+            </div>
+            {% endif %}
+            <div class="price-total">
+              <span>Total Amount</span>
+              <span>${{ total_price }}</span>
+            </div>
+          </div>
+
+          <!-- Security Badge -->
+          <div class="security-badge">
+            <div class="badge-text">
+              <strong>Secure Payment</strong>
+              <span>Your information is encrypted and secure</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- Load Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+// Initialize Stripe
+const stripe = Stripe('{{ stripe_publishable_key }}');
+
+// Create an instance of Elements
+const elements = stripe.elements();
+
+// Custom styling for the card element
+const style = {
+  base: {
+    color: '#333',
+    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    fontSmoothing: 'antialiased',
+    fontSize: '16px',
+    '::placeholder': {
+      color: '#999'
+    },
+    backgroundColor: '#ffffff',
+  },
+  invalid: {
+    color: '#ff4444',
+    iconColor: '#ff4444'
+  }
+};
+
+// Create an instance of the card Element
+const cardElement = elements.create('card', {style: style});
+
+// Mount the card Element
+cardElement.mount('#card-element');
+
+// Handle real-time validation errors
+cardElement.on('change', function(event) {
+  const displayError = document.getElementById('card-errors');
+  if (event.error) {
+    displayError.textContent = event.error.message;
+  } else {
+    displayError.textContent = '';
+  }
+});
+
+// Handle form submission
+const form = document.getElementById('bookingForm');
+const submitButton = document.getElementById('submit-button');
+const buttonText = document.getElementById('button-text');
+const spinner = document.getElementById('spinner');
+
+form.addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  // Check terms checkbox
+  const terms = document.getElementById('terms');
+  if (!terms.checked) {
+    alert('Please accept the Terms & Conditions to continue.');
+    return;
+  }
+
+  // Disable submit button and show loading
+  submitButton.disabled = true;
+  buttonText.classList.add('hidden');
+  spinner.classList.remove('hidden');
+
+  // Get form data
+  const passengerName = document.getElementById('passenger_name').value;
+  const email = document.getElementById('email').value;
+  const totalPrice = document.getElementById('total_price').value;
+
+  try {
+    // Create payment intent
+    const response = await fetch('/create-payment-intent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        amount: totalPrice,
+        passenger_name: passengerName,
+        email: email
+      })
+    });
+
+    const {clientSecret} = await response.json();
+
+    // Confirm the payment
+    const {error, paymentIntent} = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement,
+        billing_details: {
+          name: passengerName,
+          email: email
+        }
+      }
+    });
+
+    if (error) {
+      // Show error to customer
+      const errorElement = document.getElementById('card-errors');
+      errorElement.textContent = error.message;
+      
+      // Re-enable button
+      submitButton.disabled = false;
+      buttonText.classList.remove('hidden');
+      spinner.classList.add('hidden');
+    } else {
+      // Payment succeeded!
+      if (paymentIntent.status === 'succeeded') {
+        // Create a form to submit to confirmation page
+        const confirmForm = document.createElement('form');
+        confirmForm.method = 'POST';
+        confirmForm.action = '/confirmation';
+        
+        // Add all the necessary fields
+        const fields = {
+          'passenger_name': passengerName,
+          'email': email,
+          'phone': document.getElementById('phone').value,
+          'outbound_json': document.getElementById('outbound_json').value,
+          'return_json': document.getElementById('return_json')?.value || '',
+          'cabin_out': document.getElementById('cabin_out').value,
+          'cabin_ret': document.getElementById('cabin_ret')?.value || '',
+          'total_price': totalPrice,
+          'payment_intent_id': paymentIntent.id
+        };
+        
+        for (const [key, value] of Object.entries(fields)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          confirmForm.appendChild(input);
+        }
+        
+        document.body.appendChild(confirmForm);
+        confirmForm.submit();
+      }
+    }
+  } catch (err) {
+    console.error('Payment error:', err);
+    alert('An error occurred during payment processing. Please try again.');
+    
+    // Re-enable button
+    submitButton.disabled = false;
+    buttonText.classList.remove('hidden');
+    spinner.classList.add('hidden');
+  }
+});
+</script>
+
+<style>
+.seats-summary {
+  background: rgba(72, 202, 228, 0.05);
+  border: 1px solid rgba(72, 202, 228, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.seats-header {
+  color: var(--cyan);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.seat-row {
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+  color: rgba(173, 232, 244, 0.9);
+}
+
+.seat-total {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(72, 202, 228, 0.2);
+  color: var(--cyan);
+}
+
+.stripe-card-element {
+  padding: 0.875rem 1.25rem;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.stripe-card-element:focus-within {
+  border-color: var(--blue-dark);
+  box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+}
+
+.card-errors {
+  color: #ff4444;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  min-height: 20px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #000;
+  animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}
+
+.hidden {
+  display: none !important;
+}
+
+#button-text {
+  display: inline;
+}
+</style>
+{% endblock %}
