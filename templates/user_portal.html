@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="portal-container" style="max-width:1200px;margin:2rem auto;display:grid;grid-template-columns:280px 1fr;gap:1.5rem;">
+  <aside class="portal-sidebar" style="background:#0b1b4a;border-radius:14px;padding:1rem;box-shadow:0 10px 30px rgba(0,0,0,0.15);height:fit-content;position:sticky;top:90px;align-self:start;">
+    <h3 style="color:#90e0ef;margin:0 0 0.75rem 0;">User Portal</h3>
+    <nav class="portal-nav" aria-label="User Portal Navigation">
+      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.5rem;">
+        <li><button class="portal-tab-btn active" data-target="#tab-user-info">User Information</button></li>
+        <li><button class="portal-tab-btn" data-target="#tab-flight-details">Flight Details</button></li>
+        <li><button class="portal-tab-btn" data-target="#tab-ticket-details">Ticket Details</button></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="portal-content" style="background:#ffffff;border-radius:14px;padding:1.25rem 1.5rem;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+    <!-- Tabs content -->
+    <div id="tab-user-info" class="portal-tab" role="region" aria-labelledby="User Information">
+  <h2 style="color:#03045e;margin-bottom:0.75rem;display:flex;align-items:center;gap:.75rem;">User Information</h2>
+
+      <!-- Profile (read-only from User table) -->
+      <div class="passport-list-card account-card" style="margin-bottom:1.75rem;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+          <div>
+            <label class="portal-label">Username</label>
+            <div class="account-value">{{ user.name }}</div>
+          </div>
+          <div>
+            <label class="portal-label">Email</label>
+            <div class="account-value">{{ user.email }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passport List -->
+      <div class="passport-list-card">
+        <div class="passport-list-header">
+          <h3 class="passport-list-title">Saved Passports</h3>
+          {% if passports and passports|length > 0 %}<span class="count-pill">{{ passports|length }} total</span>{% endif %}
+        </div>
+        {% if passports and passports|length > 0 %}
+          <div class="table-wrapper">
+            <table class="passport-table">
+              <thead>
+                <tr>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Passport Number</th>
+                  <th>Created</th>
+                  <th style="width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in passports %}
+                {% if editing_passport and editing_passport.Passport_id == p.Passport_id %}
+                <tr class="passport-row editing">
+                  <form method="POST" action="{{ url_for('user_portal') }}" style="display:contents;" aria-label="Save passport {{ p.Passport_id }}">
+                    <td data-label="First Name">
+                      <input name="first_name" value="{{ p.First_name }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;" />
+                    </td>
+                    <td data-label="Last Name">
+                      <input name="last_name" value="{{ p.last_name }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;" />
+                    </td>
+                    <td data-label="Passport" class="mono">
+                      <input name="passport_number" value="{{ p.passport_number }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;letter-spacing:.5px;" />
+                    </td>
+                    <td data-label="Created">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
+                    <td class="actions">
+                      <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
+                      <input type="hidden" name="action" value="save" />
+                      <button type="submit" class="mini-btn edit-btn" style="background:#defce7;border-color:#86efac;color:#166534;" aria-label="Save passport {{ p.Passport_id }}">Save</button>
+                      <a href="{{ url_for('user_portal') }}" class="mini-btn" style="background:#e6faff;border-color:#94d6e7;color:#075985;" aria-label="Cancel editing passport {{ p.Passport_id }}">Cancel</a>
+                    </td>
+                  </form>
+                </tr>
+                {% else %}
+                <tr class="passport-row">
+                  <td data-label="First Name">{{ p.First_name }}</td>
+                  <td data-label="Last Name">{{ p.last_name }}</td>
+                  <td data-label="Passport" class="mono">{{ p.passport_number }}</td>
+                  <td data-label="Created">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
+                  <td class="actions">
+                    <a href="{{ url_for('user_portal') }}?edit={{ p.Passport_id }}" class="mini-btn edit-btn" aria-label="Edit passport {{ p.Passport_id }}">Edit</a>
+                    <form method="POST" action="{{ url_for('user_portal') }}" class="inline-form" aria-label="Delete passport {{ p.Passport_id }}">
+                      <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
+                      <input type="hidden" name="action" value="delete" />
+                      <button type="submit" class="mini-btn delete-btn" onclick="return confirm('Delete this passport?');">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-passports">No passports saved yet. Use the form below to add one.</div>
+        {% endif %}
+      </div>
+
+      <!-- Passport Form (Add / Edit) -->
+      {% if not editing_passport %}
+      <form method="POST" action="{{ url_for('user_portal') }}" style="background:#f8fafc;border:1px solid #e2e8f0;padding:1.25rem 1.25rem 1rem;border-radius:14px;max-width:900px;box-shadow:0 4px 18px rgba(0,0,0,0.05);">
+        <h3 style="margin:0 0 1rem 0;color:#0f172a;font-size:1.05rem;display:flex;align-items:center;gap:.5rem;">Add Passport</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+          <div>
+            <label class="portal-label" for="first_name">First Name</label>
+            <input id="first_name" name="first_name" type="text" placeholder="First Name" class="portal-input" required />
+          </div>
+          <div>
+            <label class="portal-label" for="last_name">Last Name</label>
+            <input id="last_name" name="last_name" type="text" placeholder="Last Name" class="portal-input" required />
+          </div>
+          <div>
+            <label class="portal-label" for="passport_number">Passport Number</label>
+            <input id="passport_number" name="passport_number" type="text" placeholder="e.g. A12345678" class="portal-input" required />
+          </div>
+        </div>
+        <input type="hidden" name="action" value="save" />
+        <button type="submit" class="btn" style="margin-top:1.25rem;">Save Passport</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div id="tab-flight-details" class="portal-tab" hidden role="region" aria-labelledby="Flight Details">
+      <h2 style="color:#03045e;margin-bottom:0.75rem;">Flight Details</h2>
+      <p style="color:#475569;margin-bottom:1rem;">Your upcoming and past flights will appear here.</p>
+
+      <div style="border:1px dashed #e5e7eb;border-radius:12px;padding:1rem;color:#64748b;">
+        No flight data yet. Search and book a flight to see details here.
+      </div>
+    </div>
+
+    <div id="tab-ticket-details" class="portal-tab" hidden role="region" aria-labelledby="Ticket Details">
+      <h2 style="color:#03045e;margin-bottom:0.75rem;">Ticket Details</h2>
+      <p style="color:#475569;margin-bottom:1rem;">E-tickets and receipts will show up here after booking.</p>
+
+      <div style="border:1px dashed #e5e7eb;border-radius:12px;padding:1rem;color:#64748b;">
+        No tickets available yet.
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .portal-tab-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(144,224,239,0.25);
+    background: rgba(144,224,239,0.08);
+    color: #e0f7ff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  .portal-tab-btn:hover { background: rgba(144,224,239,0.15); border-color: rgba(144,224,239,0.5); }
+  .portal-tab-btn.active { background: linear-gradient(135deg, #48cae4, #90e0ef); color: #052c47; border-color: transparent; }
+  .portal-label {display:block;font-weight:600;color:#0f172a;margin-bottom:0.35rem;font-size:.7rem;letter-spacing:.45px;text-transform:uppercase;}
+  .portal-input {width:100%;padding:.75rem 1rem;border:1px solid #cbd5e1;border-radius:10px;background:#ffffff;font-size:.9rem;transition:border .2s, box-shadow .2s;}
+  .portal-input:focus {outline:none;border-color:#48cae4;box-shadow:0 0 0 3px rgba(72,202,228,0.35);}
+  .portal-input.readonly {background:#f1f5f9;color:#475569;cursor:not-allowed;}
+  @media (prefers-color-scheme: dark){
+    .portal-input.readonly {background:#1e293b;color:#94a3b8;}
+  }
+  .account-card {padding:1.1rem 1.25rem 1rem;}
+  .account-value {font-weight:700;color:#0f172a;font-size:1.3rem;padding:.2rem 0 .2rem;}
+  @media (max-width:520px){
+    .account-value {font-size:1.15rem;}
+  }
+  @media (prefers-color-scheme: dark){
+    .account-value {color:#e2e8f0;}
+  }
+</style>
+<style>
+  /* Coherent card styling for passport list to match form */
+  .passport-list-card {background:#f8fafc;border:1px solid #e2e8f0;padding:1.1rem 1.25rem 1rem;border-radius:14px;max-width:900px;margin-bottom:1.75rem;box-shadow:0 4px 18px rgba(0,0,0,0.05);} 
+  .passport-list-header {display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;}
+  .passport-list-title {margin:0;font-size:1.0rem;font-weight:700;color:#0f172a;letter-spacing:.25px;display:flex;align-items:center;gap:.5rem;}
+  .count-pill {background:#e0faff;color:#0369a1;font-size:.6rem;font-weight:700;padding:.35rem .55rem;border-radius:6px;letter-spacing:.5px;}
+  .table-wrapper {overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;}
+  .passport-table {width:100%;border-collapse:separate;border-spacing:0;font-size:.8rem;}
+  .passport-table thead tr {background:linear-gradient(135deg,#e2f3ff,#f1f9ff);}
+  .passport-table th {text-align:left;font-weight:700;color:#0f172a;padding:.6rem .75rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #cbd5e1;}
+  .passport-table td {padding:.55rem .75rem;border-bottom:1px solid #e2e8f0;color:#334155;vertical-align:middle;}
+  .passport-table td.mono {font-family:"Segoe UI", monospace;letter-spacing:.6px;font-weight:600;color:#1e293b;}
+  .passport-row.editing {background:#fff8e1;}
+  .passport-row:hover {background:#f5fbff;}
+  .passport-table tr:last-child td {border-bottom:none;}
+  .actions {display:flex;gap:.4rem;white-space:nowrap;}
+  .mini-btn {display:inline-block;padding:.45rem .65rem;border-radius:8px;font-size:.65rem;font-weight:700;letter-spacing:.4px;text-decoration:none;border:1px solid #94d6e7;background:#e6faff;color:#075985;transition:.2s;line-height:1;}
+  .mini-btn:hover {background:#d5f4ff;border-color:#48cae4;color:#023e8a;transform:translateY(-2px);}
+  .mini-btn.edit-btn {background:#e6faff;border-color:#94d6e7;color:#075985;}
+  .mini-btn.delete-btn {background:#ffe8e6;border-color:#fca5a5;color:#b91c1c;}
+  .mini-btn.delete-btn:hover {background:#ffdad6;border-color:#ef4444;color:#991b1b;}
+  .inline-form {display:inline;}
+  .empty-passports {border:1px dashed #cbd5e1;padding:1rem;border-radius:10px;color:#64748b;font-size:.75rem;background:#ffffff;}
+  @media (max-width:640px){
+    .passport-table th, .passport-table td {padding:.5rem .6rem;}
+    .mini-btn {padding:.4rem .55rem;font-size:.6rem;}
+  }
+  @media (max-width:480px){
+    .passport-list-card {padding:.9rem 1rem .75rem;}
+    .passport-table th {font-size:.6rem;}
+    .passport-table td {font-size:.65rem;}
+    .mini-btn {padding:.35rem .5rem;font-size:.55rem;}
+  }
+</style>
+
+<script>
+  (function(){
+    const btns = document.querySelectorAll('.portal-tab-btn');
+    const tabs = document.querySelectorAll('.portal-tab');
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.getAttribute('data-target');
+        tabs.forEach(t => {
+          if ("#" + t.id === target) { t.hidden = false; }
+          else { t.hidden = true; }
+        });
+      });
+    });
+  })();
+</script>
+{% endblock %}

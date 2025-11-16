@@ -22,12 +22,36 @@
                 <li><a href="/">Home</a></li>
                 <li><a href="/about">About</a></li>
                 <li><a href="/contact">Contact</a></li>
+                {% if session.get('user_id') %}
+                <li><a href="{{ url_for('user_portal') }}">My Information</a></li>
+                {% endif %}
             </ul>
+                        <!-- Auth actions -->
+                        <div class="nav-auth">
+                            {% if session.get('user_id') %}
+                                <span class="auth-user" style="margin-right:.75rem;">Hi, {{ session.get('user_name') }}</span>
+                                <a class="auth-link logout-link" href="{{ url_for('logout') }}">Logout</a>
+                            {% else %}
+                                <a class="auth-link login-link" href="{{ url_for('login') }}">Login</a>
+                            {% endif %}
+                        </div>
         </nav>
     </header>
 
     <!-- Main Content -->
     <main>
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                                    <div class="flash-messages" style="max-width:1200px;margin:1rem auto 0;padding:0 1rem;">
+                            {% for category, message in messages %}
+                                            <div class="flash flash-{{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
         {% block content %}
         <section class="hero">
             <h1>Find the Best Deals on Flights</h1>

@@ -15,12 +15,26 @@ Author: Group 5
 Date: 2025
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 from amadeus import Client, ResponseError
 from dotenv import load_dotenv
 import os, json
 from datetime import datetime, timedelta
 import stripe
+from models import (
+    db,
+    User,
+    Airline,
+    Airport,
+    Flight,
+    Ticket,
+    Search,
+    UserCardInformation,
+    Passport,
+    seed_airlines_airports,
+)
 
 # =========================
 # Country Code Mapping
@@ -93,6 +107,32 @@ app.jinja_env.globals['timedelta'] = timedelta  # Make timedelta available in Ji
 app.config['STRIPE_PUBLISHABLE_KEY'] = os.getenv('STRIPE_PUBLISHABLE_KEY', 'pk_test_51QNxkeFDZv0v2V0H6yLVExample')
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')  # Required for session management
 
+# --- Database configuration (SQLite in instance folder) ---
+try:
+    os.makedirs(app.instance_path, exist_ok=True)
+except Exception:
+    pass
+db_path = os.path.join(app.instance_path, 'flight.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
+# Enable SQLite foreign keys
+try:
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+
+    @event.listens_for(Engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):  # pragma: no cover
+        try:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+        except Exception:
+            pass
+except Exception:
+    pass
+
 # =========================
 # Load Airlines Data
 # =========================
@@ -124,6 +164,33 @@ try:
 except Exception as e:
     print("❌ Could not load airports.json:", e)
     AIRPORTS = {}
+
+# --- Initialize database and seed static reference data on first run ---
+with app.app_context():
+    try:
+        db.create_all()
+
+        # Drop legacy tables from older schema to avoid duplicates ('users', 'bookings')
+        def cleanup_legacy_tables():
+            try:
+                insp = db.inspect(db.engine)
+                existing = set(insp.get_table_names())
+                to_drop = [t for t in ('users', 'bookings') if t in existing]
+                if to_drop:
+                    with db.engine.begin() as conn:
+                        for t in to_drop:
+                            conn.exec_driver_sql(f"DROP TABLE IF EXISTS {t}")
+                    print(f"🧹 Dropped legacy tables: {', '.join(to_drop)}")
+            except Exception as e:
+                print(f"⚠️ Legacy table cleanup skipped: {e}")
+
+        cleanup_legacy_tables()
+
+        # Seed only if empty; function handles checks internally
+        seed_airlines_airports(os.path.join(os.path.dirname(__file__), 'json-files'))
+        print(f"✅ Database ready at: {db_path}")
+    except Exception as db_err:
+        print("❌ Database initialization error:", db_err)
 
 # =========================
 # Helper Functions
@@ -374,6 +441,127 @@ def search():
 
         if trip_type == 'roundtrip' and return_date:
             return_flights = build_flights(destination, origin, return_date)
+
+        # Persist search + all offers if user is logged in
+        try:
+            user_id = session.get('user_id')
+            if user_id:
+                # Parse dates
+                try:
+                    dep_dt = datetime.strptime(searched_date, "%Y-%m-%d") if searched_date else None
+                except Exception:
+                    dep_dt = None
+                try:
+                    ret_dt = datetime.strptime(return_date, "%Y-%m-%d") if (trip_type == 'roundtrip' and return_date) else None
+                except Exception:
+                    ret_dt = None
+
+                target_price = min_prices.get(searched_date)
+
+                search_row = Search(
+                    user_id=user_id,
+                    origin=(origin or '').upper(),
+                    destination=(destination or '').upper(),
+                    departure_date=dep_dt,
+                    return_date=ret_dt,
+                    target_price=float(target_price) if target_price is not None else None,
+                )
+                db.session.add(search_row)
+                db.session.flush()  # get search_id without full commit yet
+
+                # Prepare offers
+                from models import FlightOffer  # local import to avoid circular at runtime
+                offer_rows = []
+                for f in outbound_flights:
+                    # Determine lowest price + currency
+                    lowest_price = None
+                    currency = None
+                    for fares in f.get('fares_by_cabin', {}).values():
+                        for fare in fares:
+                            price = fare.get('price')
+                            if price is not None:
+                                if lowest_price is None or price < lowest_price:
+                                    lowest_price = price
+                                    currency = fare.get('currency')
+
+                    # Parse departure/arrival datetimes if possible
+                    def parse_dt(val):
+                        try:
+                            return datetime.fromisoformat(val.replace('Z','')) if val else None
+                        except Exception:
+                            return None
+
+                    offer_rows.append(
+                        FlightOffer(
+                            search_id=search_row.search_id,
+                            offer_id=f.get('offer_id'),
+                            airline_name=f.get('airline_name'),
+                            origin=f.get('origin'),
+                            destination=f.get('destination'),
+                            departure=parse_dt(f.get('departure')),
+                            arrival=parse_dt(f.get('arrival')),
+                            duration_text=f.get('duration'),
+                            stops_text=f.get('stops_text'),
+                            lowest_price=lowest_price,
+                            currency=currency,
+                        )
+                    )
+
+                if offer_rows:
+                    db.session.bulk_save_objects(offer_rows, return_defaults=False)
+
+                db.session.commit()
+
+                # Also log each outbound flight directly into Search table (one row per offer) per request
+                # This fulfills requirement to have all API returned results represented in Search table.
+                # NOTE: This will grow the Search table quickly; consider pagination/archival later.
+                per_offer_rows = []
+                seen_offer_ids = set()
+                for f in outbound_flights:
+                    offer_id = f.get('offer_id')
+                    if not offer_id or offer_id in seen_offer_ids:
+                        continue
+                    seen_offer_ids.add(offer_id)
+
+                    # Lowest price for this offer
+                    lowest_price = None
+                    for fares in f.get('fares_by_cabin', {}).values():
+                        for fare in fares:
+                            p = fare.get('price')
+                            if p is not None and (lowest_price is None or p < lowest_price):
+                                lowest_price = p
+
+                    # Departure date for the offer (date part only)
+                    dep_dt_offer = None
+                    try:
+                        raw_dep = f.get('departure')
+                        if raw_dep:
+                            dep_iso = raw_dep.replace('Z','')
+                            dep_dt_full = datetime.fromisoformat(dep_iso)
+                            dep_dt_offer = dep_dt_full.replace(hour=0, minute=0, second=0, microsecond=0)
+                    except Exception:
+                        dep_dt_offer = dep_dt
+
+                    per_offer_rows.append(
+                        Search(
+                            user_id=user_id,
+                            origin=(f.get('origin') or '').upper(),
+                            destination=(f.get('destination') or '').upper(),
+                            departure_date=dep_dt_offer,
+                            return_date=ret_dt,
+                            target_price=float(lowest_price) if lowest_price is not None else None,
+                        )
+                    )
+
+                if per_offer_rows:
+                    db.session.bulk_save_objects(per_offer_rows, return_defaults=False)
+                    db.session.commit()
+        except Exception as e:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            print(f"⚠️ Could not persist search + offers: {e}")
 
 
     return render_template(
@@ -962,6 +1150,60 @@ def confirmation():
     origin_city = AIRPORTS.get(outbound.get('origin', ''), {}).get('city', outbound.get('origin', ''))
     destination_city = AIRPORTS.get(outbound.get('destination', ''), {}).get('city', outbound.get('destination', ''))
     
+    # Persist Ticket and Flight (best-effort; does not block rendering)
+    try:
+        with app.app_context():
+            def parse_dt(val):
+                try:
+                    return datetime.fromisoformat(val) if val else None
+                except Exception:
+                    return None
+
+            def duration_minutes(s: str | None) -> int | None:
+                if not s:
+                    return None
+                try:
+                    # expects like "12h 30m" or "12h" or "30m"
+                    mins = 0
+                    import re
+                    h = re.search(r"(\d+)h", s)
+                    m = re.search(r"(\d+)m", s)
+                    if h:
+                        mins += int(h.group(1)) * 60
+                    if m:
+                        mins += int(m.group(1))
+                    return mins or None
+                except Exception:
+                    return None
+
+            dep_time = parse_dt(outbound.get('departure') if outbound else None)
+            arr_time = parse_dt(outbound.get('arrival') if outbound else None)
+            dur = duration_minutes(outbound.get('duration') if outbound else None)
+
+            flight = Flight(
+                flight_number=None,  # unknown in simplified offer
+                departure_airport=(outbound.get('origin') if outbound else '') or '',
+                arrival_airport=(outbound.get('destination') if outbound else '') or '',
+                departure_time=dep_time,
+                arrival_time=arr_time,
+                duration=dur,
+            )
+            db.session.add(flight)
+            db.session.flush()  # get flight_id
+
+            ticket = Ticket(
+                flight_id=flight.flight_id,
+                search_id=None,  # could link to a saved Search if/when implemented with auth
+                price=float(total_price or 0.0),
+                currency='USD',
+                fare_class=cabin_out,
+                Ticket_bought=True,
+            )
+            db.session.add(ticket)
+            db.session.commit()
+    except Exception as e:
+        print(f"⚠️ Could not save ticket/flight: {e}")
+
     return render_template(
         'confirmation.html',
         booking_ref=booking_ref,
@@ -1654,6 +1896,209 @@ def get_delay_prediction():
 # =========================
 # Authentication Routes
 # =========================
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page backed by the User table."""
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip()
+        password = (request.form.get('password') or '').strip()
+
+        if not username or not password:
+            flash('Please enter both username and password.', 'error')
+            return render_template('login.html')
+
+        try:
+            # Allow login by username (User.name); could be extended to email if needed
+            user = User.query.filter_by(name=username).first()
+            if not user or not check_password_hash(user.password_hash, password):
+                flash('Invalid username or password.', 'error')
+                return render_template('login.html')
+
+            # Set session
+            session['user_id'] = user.user_id
+            session['user_name'] = user.name
+            flash(f'Welcome back, {user.name}!', 'success')
+            return redirect(url_for('user_portal'))
+        except Exception as e:
+            print(f"❌ Login error: {e}")
+            flash('Could not log you in right now. Please try again.', 'error')
+            return render_template('login.html')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    """Log out the current user and redirect to login page."""
+    try:
+        session.pop('user_id', None)
+        session.pop('user_name', None)
+    except Exception:
+        pass
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """Signup page that persists users in the database."""
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = (request.form.get('password') or '').strip()
+        confirm = (request.form.get('confirm_password') or '').strip()
+
+        if not username or not email or not password or not confirm:
+            flash('All fields are required.', 'error')
+            return render_template('signup.html')
+        if password != confirm:
+            flash('Passwords do not match.', 'error')
+            return render_template('signup.html')
+
+        # Persist user (ensure unique email)
+        try:
+            with app.app_context():
+                existing = User.query.filter_by(email=email).first()
+                if existing:
+                    flash('An account with this email already exists. Please log in.', 'error')
+                    return redirect(url_for('login'))
+
+                password_hash = generate_password_hash(password)
+                user = User(name=username, email=email, password_hash=password_hash)
+                db.session.add(user)
+                db.session.commit()
+                flash('Account created successfully. Please log in.', 'success')
+                return redirect(url_for('login'))
+        except Exception as e:
+            print(f"❌ Signup persistence error: {e}")
+            flash('Could not create account at this time. Please try again.', 'error')
+            return render_template('signup.html')
+
+    return render_template('signup.html')
+
+
+# Basic routes for static pages referenced in navbar
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+
+# =========================
+# User Portal (Profile & Passport Management)
+# =========================
+@app.route('/user-portal', methods=['GET', 'POST'])
+def user_portal():
+    """Authenticated user portal.
+
+    GET: Show user profile (name/email) and list of passports with edit/delete actions.
+    POST: Create a new passport, update existing, or delete.
+    """
+    if not session.get('user_id'):
+        flash('Please log in to access your portal.', 'error')
+        return redirect(url_for('login'))
+
+    user = User.query.get(session.get('user_id'))
+    if not user:
+        flash('User record not found.', 'error')
+        return redirect(url_for('login'))
+
+    action = (request.form.get('action') or '').lower()
+    passport_id = request.form.get('passport_id')
+    editing_passport = None
+
+    if request.method == 'POST':
+        if action == 'delete' and passport_id:
+            try:
+                p = Passport.query.filter_by(Passport_id=passport_id, user_id=user.user_id).first()
+                if p:
+                    db.session.delete(p)
+                    db.session.commit()
+                    flash('Passport deleted.', 'success')
+                else:
+                    flash('Passport not found.', 'error')
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Passport delete error: {e}")
+                flash('Could not delete passport.', 'error')
+        else:  # save (create or update)
+            first_name = (request.form.get('first_name') or '').strip()
+            last_name = (request.form.get('last_name') or '').strip()
+            passport_number = (request.form.get('passport_number') or '').strip()
+
+            if not first_name or not last_name or not passport_number:
+                flash('All passport fields are required.', 'error')
+            else:
+                try:
+                    if passport_id:
+                        editing_passport = Passport.query.filter_by(Passport_id=passport_id, user_id=user.user_id).first()
+                        if not editing_passport:
+                            flash('Passport not found for update.', 'error')
+                        else:
+                            editing_passport.First_name = first_name
+                            editing_passport.last_name = last_name
+                            editing_passport.passport_number = passport_number
+                            db.session.commit()
+                            flash('Passport updated.', 'success')
+                            # After successful update, clear editing state so buttons revert to Edit/Delete
+                            editing_passport = None
+                            return redirect(url_for('user_portal'))
+                    else:
+                        new_passport = Passport(
+                            user_id=user.user_id,
+                            First_name=first_name,
+                            last_name=last_name,
+                            passport_number=passport_number,
+                        )
+                        db.session.add(new_passport)
+                        db.session.commit()
+                        flash('Passport added.', 'success')
+                        # Use PRG pattern to avoid form resubmission and ensure clean state
+                        return redirect(url_for('user_portal'))
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"❌ Passport save error: {e}")
+                    flash('Could not save passport information right now.', 'error')
+
+    # If GET with edit param, set editing_passport
+    if request.method == 'GET':
+        edit_id = request.args.get('edit')
+        if edit_id:
+            editing_passport = Passport.query.filter_by(Passport_id=edit_id, user_id=user.user_id).first()
+
+    passports = Passport.query.filter_by(user_id=user.user_id).order_by(Passport.created_at.desc()).all()
+    return render_template('user_portal.html', user=user, passports=passports, editing_passport=editing_passport)
+
+@app.route('/user_portal')
+def user_portal_redirect():  # compatibility alias
+    return redirect(url_for('user_portal'))
+
+# =========================
+# Flask CLI: init-db
+# =========================
+@app.cli.command('init-db')
+def init_db_command():
+    """Initialize the database tables and seed reference data."""
+    with app.app_context():
+        db.create_all()
+        seed_airlines_airports(os.path.join(os.path.dirname(__file__), 'json-files'))
+        print('Database initialized and seeded.')
+
+@app.cli.command('clean-legacy')
+def clean_legacy_command():
+    """Drop legacy tables from older schema (users, bookings)."""
+    with app.app_context():
+        try:
+            with db.engine.begin() as conn:
+                conn.exec_driver_sql("DROP TABLE IF EXISTS users")
+                conn.exec_driver_sql("DROP TABLE IF EXISTS bookings")
+            print('Dropped legacy tables (users, bookings).')
+        except Exception as e:
+            print(f"Could not drop legacy tables: {e}")
 
 # =========================
 # Run App

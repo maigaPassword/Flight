@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section style="max-width:520px;margin:2rem auto;padding:2rem;background:#ffffff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+  <h2 style="margin-bottom:1rem;color:#03045e;">Login</h2>
+  <p style="margin-bottom:1.5rem;color:#475569;">Welcome back. Please sign in to continue.</p>
+
+  <form id="login-form" method="post" action="{{ url_for('login') }}" novalidate>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <label for="username" style="font-weight:600;color:#0f172a;">Username</label>
+      <input id="username" name="username" type="text" required placeholder="Enter your username"
+             style="padding:0.75rem 1rem;border:1px solid #e2e8f0;border-radius:8px;font-size:1rem;" />
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem;">
+      <label for="password" style="font-weight:600;color:#0f172a;">Password</label>
+      <input id="password" name="password" type="password" required placeholder="Enter your password"
+             style="padding:0.75rem 1rem;border:1px solid #e2e8f0;border-radius:8px;font-size:1rem;" />
+    </div>
+
+    <button type="submit" class="btn" style="margin-top:1.25rem;width:100%;">Login</button>
+  </form>
+
+  <div style="margin-top:1rem;text-align:center;color:#334155;">
+    Don't have an account?
+    <a href="{{ url_for('signup') }}" class="signup-link" style="text-decoration:none;padding:0.25rem 0.4rem;border-radius:6px;">Sign up</a>
+  </div>
+</section>
+{% endblock %}
