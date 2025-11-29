@@ -1,0 +1,124 @@
+{% extends "admin_base.html" %}
+
+{% block title %}API Logs{% endblock %}
+{% block page_title %}API & Webhook Logs{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-body">
+        <div class="filters">
+            <div class="filter-item">
+                <label>Log Type:</label>
+                <select id="typeFilter" class="form-control">
+                    <option value="all">All Types</option>
+                    <option value="flight_search">Flight Search</option>
+                    <option value="flight_book">Flight Book</option>
+                    <option value="webhook">Webhook</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <button class="btn btn-secondary" onclick="loadLogs()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">API Logs</div>
+        <div class="card-actions">
+            <span id="logsCount" class="text-muted">Loading...</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="logsTable">
+                <thead>
+                    <tr>
+                        <th>Log ID</th>
+                        <th>Type</th>
+                        <th>Provider</th>
+                        <th>Status Code</th>
+                        <th>User ID</th>
+                        <th>Booking ID</th>
+                        <th>Error</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-file-alt"></i>
+            <h3>No Logs Found</h3>
+            <p>API and webhook logs will appear here</p>
+        </div>
+        <div id="pagination" class="pagination"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+let currentPage = 1;
+
+async function loadLogs(page = 1) {
+    try {
+        const type = document.getElementById('typeFilter').value;
+        const response = await fetch(`${API_BASE}/logs?type=${type}&page=${page}&per_page=100`);
+        const data = await response.json();
+        
+        renderLogsTable(data.logs);
+        renderPagination(data.current_page, data.pages);
+        document.getElementById('logsCount').textContent = `${data.total} total logs`;
+        currentPage = page;
+    } catch (error) {
+        console.error('Error loading logs:', error);
+    }
+}
+
+function renderLogsTable(logs) {
+    const tbody = document.querySelector('#logsTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (logs.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#logsTable').style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    document.querySelector('#logsTable').style.display = 'table';
+    
+    tbody.innerHTML = logs.map(log => `
+        <tr>
+            <td>${log.log_id}</td>
+            <td><span class="badge badge-info">${log.log_type}</span></td>
+            <td>${log.provider || '-'}</td>
+            <td><span class="badge badge-${log.status_code === 200 ? 'success' : 'danger'}">${log.status_code || '-'}</span></td>
+            <td>${log.user_id || '-'}</td>
+            <td>${log.booking_id || '-'}</td>
+            <td class="text-danger" style="max-width: 200px; font-size: 12px;">${log.error_message || '-'}</td>
+            <td class="text-muted" style="font-size: 12px;">${log.created_at}</td>
+        </tr>
+    `).join('');
+}
+
+function renderPagination(current, total) {
+    const pagination = document.getElementById('pagination');
+    if (total <= 1) { pagination.innerHTML = ''; return; }
+    let html = `<button onclick="loadLogs(${current - 1})" ${current === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+    for (let i = Math.max(1, current - 2); i <= Math.min(total, current + 2); i++) {
+        html += `<button onclick="loadLogs(${i})" class="${i === current ? 'active' : ''}">${i}</button>`;
+    }
+    html += `<button onclick="loadLogs(${current + 1})" ${current === total ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+    pagination.innerHTML = html;
+}
+
+document.getElementById('typeFilter').addEventListener('change', () => loadLogs(1));
+document.addEventListener('DOMContentLoaded', () => loadLogs());
+</script>
+{% endblock %}

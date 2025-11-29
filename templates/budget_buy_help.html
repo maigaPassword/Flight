@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block title %}Budget Buy Feature - Skyvela{% endblock %}
+{% block content %}
+<div class="min-h-screen" style="background-color: #f8fafc;">
+    <!-- Hero Section -->
+    <div class="py-12" style="background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Budget Buy Feature</h1>
+            <p class="text-xl text-white/90">Set your price, we'll find your flight</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-12 max-w-5xl">
+        <!-- Overview -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <h2 class="text-3xl font-bold mb-4" style="color: #0077b6;">What is Budget Buy?</h2>
+            <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                Budget Buy is Skyvela's intelligent price alert system that monitors flight prices 24/7 and 
+                notifies you when fares drop within your budget. Instead of constantly checking prices, set 
+                your maximum budget and let us do the work for you.
+            </p>
+            <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe);">
+                <p class="text-lg font-semibold" style="color: #023e8a;">
+                    💡 Save an average of 30-40% on flight costs by booking at the right time!
+                </p>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">How Budget Buy Works</h3>
+            
+            <div class="space-y-6">
+                <!-- Step 1 -->
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">1</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xl font-bold mb-2" style="color: #03045e;">Set Your Budget & Route</h4>
+                        <p class="text-gray-700">Enter your departure city, destination, travel dates, and most importantly - your maximum budget. Be realistic but flexible with dates for best results.</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">2</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xl font-bold mb-2" style="color: #03045e;">We Monitor Prices</h4>
+                        <p class="text-gray-700">Our advanced system continuously tracks flight prices from hundreds of airlines in real-time, looking for fares that match your budget criteria.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">3</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xl font-bold mb-2" style="color: #03045e;">Get Instant Alerts</h4>
+                        <p class="text-gray-700">When we find a flight within your budget, you'll receive an instant email and in-app notification with all the details.</p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">4</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xl font-bold mb-2" style="color: #03045e;">Book Quickly</h4>
+                        <p class="text-gray-700">Great deals don't last long! Click the link in your alert to review and book the flight before prices change.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">Key Features</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        24/7 Price Monitoring
+                    </h4>
+                    <p class="text-gray-700 text-sm">Continuous monitoring means you never miss a deal, even while you sleep.</p>
+                </div>
+
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Instant Email Alerts
+                    </h4>
+                    <p class="text-gray-700 text-sm">Get notified immediately when flights match your budget.</p>
+                </div>
+
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Flexible Date Range
+                    </h4>
+                    <p class="text-gray-700 text-sm">Set a date range (+/- 3 days) for more opportunities to save.</p>
+                </div>
+
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Multiple Requests
+                    </h4>
+                    <p class="text-gray-700 text-sm">Create unlimited Budget Buy requests for different routes.</p>
+                </div>
+
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        Price History
+                    </h4>
+                    <p class="text-gray-700 text-sm">View historical price trends to set realistic budgets.</p>
+                </div>
+
+                <div class="p-6 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold mb-2 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        No Extra Fees
+                    </h4>
+                    <p class="text-gray-700 text-sm">Budget Buy is completely free - pay only the flight price.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips for Success -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">Tips for Getting the Best Deals</h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-1" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Be Flexible with Dates</h4>
+                        <p class="text-gray-700 text-sm">Mid-week flights (Tuesday-Thursday) are often cheaper. Use the flexible date option.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-1" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Set Realistic Budgets</h4>
+                        <p class="text-gray-700 text-sm">Research average prices for your route. Setting budgets too low may result in no matches.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-1" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Book Early</h4>
+                        <p class="text-gray-700 text-sm">Create your Budget Buy request 2-3 months in advance for international flights.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-1" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Act Quickly</h4>
+                        <p class="text-gray-700 text-sm">When you receive an alert, book fast! Prices can change within hours.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-1" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Consider Nearby Airports</h4>
+                        <p class="text-gray-700 text-sm">Flying to/from alternative airports can sometimes save hundreds of dollars.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Managing Requests -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Managing Your Budget Buy Requests</h3>
+            
+            <div class="space-y-4">
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">View Active Requests</h4>
+                    <p class="text-gray-700 text-sm">Access all your active Budget Buy requests from the <strong>Budget Buy</strong> page. See status, budget, and route details at a glance.</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Edit or Cancel</h4>
+                    <p class="text-gray-700 text-sm">Need to change your budget or travel dates? Edit requests anytime. Cancel requests you no longer need to keep your dashboard clean.</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Notification Preferences</h4>
+                    <p class="text-gray-700 text-sm">Choose how you want to be notified: email, SMS, or in-app notifications (or all three!).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">Frequently Asked Questions</h3>
+            
+            <div class="space-y-4">
+                <div class="p-5 rounded-lg" style="background: #f8fafc; border-left: 4px solid #48cae4;">
+                    <h4 class="font-bold mb-2" style="color: #03045e;">Is Budget Buy free to use?</h4>
+                    <p class="text-gray-700 text-sm">Yes! Budget Buy is completely free. You only pay the flight price when you book.</p>
+                </div>
+
+                <div class="p-5 rounded-lg" style="background: #f8fafc; border-left: 4px solid #48cae4;">
+                    <h4 class="font-bold mb-2" style="color: #03045e;">How many Budget Buy requests can I create?</h4>
+                    <p class="text-gray-700 text-sm">There's no limit! Create as many Budget Buy requests as you need for different routes and dates.</p>
+                </div>
+
+                <div class="p-5 rounded-lg" style="background: #f8fafc; border-left: 4px solid #48cae4;">
+                    <h4 class="font-bold mb-2" style="color: #03045e;">What if I never get an alert?</h4>
+                    <p class="text-gray-700 text-sm">If your budget is too low or dates are inflexible, you may not receive alerts. Try increasing your budget or adding date flexibility.</p>
+                </div>
+
+                <div class="p-5 rounded-lg" style="background: #f8fafc; border-left: 4px solid #48cae4;">
+                    <h4 class="font-bold mb-2" style="color: #03045e;">How quickly do I need to book after receiving an alert?</h4>
+                    <p class="text-gray-700 text-sm">Flight prices can change within hours or even minutes. We recommend booking as soon as possible after receiving an alert.</p>
+                </div>
+
+                <div class="p-5 rounded-lg" style="background: #f8fafc; border-left: 4px solid #48cae4;">
+                    <h4 class="font-bold mb-2" style="color: #03045e;">Can I use Budget Buy for international flights?</h4>
+                    <p class="text-gray-700 text-sm">Absolutely! Budget Buy works for both domestic and international flights from hundreds of airlines worldwide.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <h3 class="text-3xl font-bold mb-4" style="color: #0077b6;">Ready to Save on Flights?</h3>
+            <p class="text-gray-700 mb-6 text-lg">Start using Budget Buy today and never overpay for flights again.</p>
+            <a href="{{ url_for('budget_buy') }}" class="inline-block py-3 px-8 rounded-lg font-semibold text-white transition-all hover:shadow-lg" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                Create Budget Buy Request
+            </a>
+            <p class="text-sm text-gray-500 mt-4">Our support team is available 24/7 if you need assistance</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

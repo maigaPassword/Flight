@@ -1,0 +1,676 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="bookings-container">
+    <div class="bookings-header">
+        <h1>✈️ My Bookings</h1>
+        <p>All your flight tickets and reservations</p>
+    </div>
+
+    {% if bookings %}
+    <div class="bookings-stats">
+        <div class="stat-card">
+            <div class="stat-number">{{ bookings|length }}</div>
+            <div class="stat-label">Total Bookings</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ bookings|selectattr('type', 'equalto', 'budget_buy')|list|length }}</div>
+            <div class="stat-label">Budget Buy</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ bookings|selectattr('type', 'equalto', 'manual')|list|length }}</div>
+            <div class="stat-label">Manual</div>
+        </div>
+        {% if active_budget_requests %}
+        <div class="stat-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6;">
+            <div class="stat-number" style="color: #1e40af;">{{ active_budget_requests }}</div>
+            <div class="stat-label">Active Monitoring</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="bookings-list">
+        {% for booking in bookings %}
+        <div class="booking-row">
+            <div class="booking-main">
+                <div class="route-info">
+                    <span class="route">{{ booking.flight.departure_airport }} → {{ booking.flight.arrival_airport }}</span>
+                    {% if booking.type == 'budget_buy' %}
+                        <span class="type-badge budget">Budget Buy</span>
+                    {% endif %}
+                </div>
+                <div class="flight-date">
+                    {% if booking.flight.departure_time %}
+                        {{ booking.flight.departure_time.strftime('%b %d, %Y at %I:%M %p') }}
+                    {% else %}
+                        TBD
+                    {% endif %}
+                </div>
+            </div>
+            <div class="booking-price">
+                <div class="price">${{ "%.2f"|format(booking.ticket.price) }}</div>
+                <div class="confirmation">{{ booking.confirmation }}</div>
+            </div>
+            <button class="details-btn" onclick='showDetails({{ loop.index0 }}, 
+                {
+                    "type": "{{ booking.type }}",
+                    "route": "{{ booking.flight.departure_airport }} → {{ booking.flight.arrival_airport }}",
+                    "flight_number": "{{ booking.flight.flight_number or 'TBD' }}",
+                    "departure_time": "{% if booking.flight.departure_time %}{{ booking.flight.departure_time.strftime('%b %d, %Y at %I:%M %p') }}{% else %}TBD{% endif %}",
+                    "duration": "{{ booking.flight.duration or 'TBD' }}",
+                    "fare_class": "{{ booking.ticket.fare_class or 'Economy' }}",
+                    "price": {{ booking.ticket.price }},
+                    "currency": "{{ booking.ticket.currency }}",
+                    "confirmation": "{{ booking.confirmation }}",
+                    "passenger_name": "{% if booking.ticket.passenger_first_name %}{{ booking.ticket.passenger_first_name }} {{ booking.ticket.passenger_last_name }}{% endif %}",
+                    "passport": "{% if booking.ticket.passenger_passport %}{{ booking.ticket.passenger_passport }}{% endif %}"
+                    {% if booking.type == 'budget_buy' and booking.budget_request %},
+                    "budget": {
+                        "min": {{ booking.budget_request.min_budget }},
+                        "max": {{ booking.budget_request.max_budget }},
+                        "booked_price": {{ booking.budget_request.booked_price or booking.ticket.price }},
+                        "mode": "{{ booking.budget_request.mode }}",
+                        "non_stop": {{ booking.budget_request.non_stop_only|lower }}
+                    }
+                    {% endif %}
+                })'>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Details
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Modal Popup -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        function showDetails(index, booking) {
+            const modal = document.getElementById('detailsModal');
+            const modalBody = document.getElementById('modalBody');
+
+            let budgetInfo = '';
+            if (booking.type === 'budget_buy' && booking.budget) {
+                const req = booking.budget;
+                budgetInfo = `
+                    <div class="info-section budget-section">
+                        <h3>💰 Budget Buy Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Target Budget</span>
+                                <span class="info-value">$${req.min.toFixed(2)} - $${req.max.toFixed(2)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Booked Price</span>
+                                <span class="info-value" style="color: #16a34a;">$${req.booked_price.toFixed(2)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Mode</span>
+                                <span class="info-value">${req.mode === 'auto_book' ? 'Auto-Book' : 'Alert Only'}</span>
+                            </div>
+                            ${req.non_stop ? '<div class="info-item"><span class="info-label">Preference</span><span class="info-value">Non-stop only</span></div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let passengerInfo = '';
+            if (booking.passenger_name) {
+                passengerInfo = `
+                    <div class="info-section">
+                        <h3>👤 Passenger Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Name</span>
+                                <span class="info-value">${booking.passenger_name}</span>
+                            </div>
+                            ${booking.passport ? `<div class="info-item"><span class="info-label">Passport</span><span class="info-value" style="font-family: 'Courier New', monospace;">${booking.passport}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            modalBody.innerHTML = `
+                <h2>✈️ Booking Details</h2>
+                <div class="booking-badge ${booking.type === 'budget_buy' ? 'budget-buy' : 'manual'}">${booking.type === 'budget_buy' ? '🎯 Budget Buy' : '✋ Manual Booking'}</div>
+                
+                <div class="info-section">
+                    <h3>🛫 Flight Information</h3>
+                    <div class="route-display">${booking.route}</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Flight Number</span>
+                            <span class="info-value">${booking.flight_number}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Departure</span>
+                            <span class="info-value">${booking.departure_time}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Duration</span>
+                            <span class="info-value">${booking.duration}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Class</span>
+                            <span class="info-value">${booking.fare_class}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${budgetInfo}
+                ${passengerInfo}
+
+                <div class="info-section">
+                    <h3>💳 Payment & Confirmation</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Total Price</span>
+                            <span class="info-value" style="color: #0077b6; font-size: 1.2rem; font-weight: 700;">$${booking.price.toFixed(2)} ${booking.currency}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Confirmation Code</span>
+                            <span class="info-value" style="font-family: 'Courier New', monospace; letter-spacing: 1px;">${booking.confirmation}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="action-btn print-btn" onclick="window.print()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                        </svg>
+                        Print
+                    </button>
+                    <button class="action-btn download-btn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="action-btn email-btn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Email
+                    </button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('detailsModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailsModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <div class="empty-icon">✈️</div>
+        <h2>No Bookings Yet</h2>
+        <p>You haven't booked any flights yet. Start searching or create a Budget Buy request!</p>
+        <div class="empty-actions">
+            <a href="/" class="btn-primary">Search Flights</a>
+            <a href="/budget-buy" class="btn-secondary">Budget Buy</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .bookings-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .bookings-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .bookings-header h1 {
+        color: #03045e;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .bookings-header p {
+        color: #475569;
+        font-size: 1.1rem;
+    }
+
+    /* Stats */
+    .bookings-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #0077b6, #00b4d8);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    /* Booking Rows */
+    .bookings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .booking-row {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s;
+    }
+
+    .booking-row:hover {
+        box-shadow: 0 2px 8px rgba(0, 119, 182, 0.15);
+        border-color: #0077b6;
+    }
+
+    .booking-main {
+        flex: 1;
+    }
+
+    .route-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .route {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .type-badge {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .type-badge.budget {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .flight-date {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .booking-price {
+        text-align: right;
+    }
+
+    .price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0077b6;
+        margin-bottom: 0.15rem;
+    }
+
+    .confirmation {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-family: 'Courier New', monospace;
+    }
+
+    .details-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 1rem;
+        background: #0077b6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-left: 1rem;
+    }
+
+    .details-btn:hover {
+        background: #005f8f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
+    }
+
+    .details-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background-color: #ffffff;
+        margin: 3% auto;
+        padding: 0;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideDown 0.3s;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-content h2 {
+        background: linear-gradient(135deg, #0077b6, #00b4d8);
+        color: white;
+        margin: 0;
+        padding: 1.5rem;
+        border-radius: 16px 16px 0 0;
+        font-size: 1.75rem;
+    }
+
+    .modal-content > div {
+        padding: 1.5rem;
+    }
+
+    .close-btn {
+        color: white;
+        float: right;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+        transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+        transform: rotate(90deg);
+    }
+
+    .booking-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+    }
+
+    .booking-badge.budget-buy {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .booking-badge.manual {
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .info-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .info-section:last-of-type {
+        border-bottom: none;
+    }
+
+    .info-section h3 {
+        color: #1e293b;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+
+    .budget-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #bae6fd;
+        border-radius: 10px;
+        padding: 1.25rem;
+    }
+
+    .route-display {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0077b6;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 0.95rem;
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #f1f5f9;
+    }
+
+    .action-btn {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        color: #475569;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: #f8fafc;
+        border-color: #0077b6;
+        color: #0077b6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 119, 182, 0.2);
+    }
+
+    .action-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+
+    .empty-state h2 {
+        color: #1e293b;
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .empty-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        background: #0077b6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #023e8a;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .bookings-container {
+            padding: 1rem;
+        }
+
+        .booking-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .booking-price {
+            text-align: left;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .details-btn {
+            width: 100%;
+            margin-left: 0;
+            justify-content: center;
+        }
+
+        .bookings-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 5% auto;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .modal-actions {
+            flex-direction: column;
+        }
+    }
+
+    @media print {
+        .bookings-stats {
+            display: none;
+        }
+        .details-btn {
+            display: none;
+        }
+        .modal {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

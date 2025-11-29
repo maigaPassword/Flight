@@ -1,0 +1,240 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- ApexCharts for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Metrics Cards -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <div>
+                <div class="metric-title">Total Bookings</div>
+                <div class="metric-value" id="totalBookings">0</div>
+                <div class="metric-subtitle">All time</div>
+            </div>
+            <div class="metric-icon primary">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div>
+                <div class="metric-title">Total Revenue</div>
+                <div class="metric-value" id="totalRevenue">$0</div>
+                <div class="metric-subtitle">Completed payments</div>
+            </div>
+            <div class="metric-icon success">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div>
+                <div class="metric-title">Today's Bookings</div>
+                <div class="metric-value" id="todayBookings">0</div>
+                <div class="metric-subtitle">Created today</div>
+            </div>
+            <div class="metric-icon info">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div>
+                <div class="metric-title">Pending Bookings</div>
+                <div class="metric-value" id="pendingBookings">0</div>
+                <div class="metric-subtitle">Awaiting confirmation</div>
+            </div>
+            <div class="metric-icon warning">
+                <i class="fas fa-clock"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bookings Chart -->
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">Bookings Overview (Last 7 Days)</div>
+    </div>
+    <div class="card-body">
+        <div id="bookingsChart" class="chart-container"></div>
+    </div>
+</div>
+
+<!-- Recent Bookings Table -->
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">Recent Bookings</div>
+        <div class="card-actions">
+            <a href="{{ url_for('admin.bookings_page') }}" class="btn btn-secondary btn-sm">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="recentBookingsTable">
+                <thead>
+                    <tr>
+                        <th>PNR</th>
+                        <th>Customer</th>
+                        <th>Route</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>No Bookings Yet</h3>
+            <p>Recent flight bookings will appear here</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// API endpoint
+const API_BASE = '/admin/api';
+
+// Fetch and display dashboard metrics
+async function loadDashboardMetrics() {
+    try {
+        const response = await fetch(`${API_BASE}/metrics`);
+        const data = await response.json();
+        
+        // Update metrics
+        document.getElementById('totalBookings').textContent = data.total_bookings.toLocaleString();
+        document.getElementById('totalRevenue').textContent = `$${data.total_revenue.toLocaleString()}`;
+        document.getElementById('todayBookings').textContent = data.today_bookings.toLocaleString();
+        document.getElementById('pendingBookings').textContent = data.pending_bookings.toLocaleString();
+        
+        // Render chart
+        renderBookingsChart(data.daily_bookings);
+        
+        // Render recent bookings table
+        renderRecentBookings(data.recent_bookings);
+        
+    } catch (error) {
+        console.error('Error loading dashboard metrics:', error);
+    }
+}
+
+// Render bookings chart
+function renderBookingsChart(dailyData) {
+    const dates = dailyData.map(d => d.date);
+    const counts = dailyData.map(d => d.count);
+    
+    const options = {
+        series: [{
+            name: 'Bookings',
+            data: counts
+        }],
+        chart: {
+            type: 'area',
+            height: 300,
+            toolbar: {
+                show: false
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 2
+        },
+        colors: ['#0077b6'],
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0.1,
+            }
+        },
+        xaxis: {
+            categories: dates,
+            labels: {
+                formatter: function(value) {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }
+            }
+        },
+        yaxis: {
+            title: {
+                text: 'Number of Bookings'
+            }
+        },
+        tooltip: {
+            x: {
+                format: 'dd MMM yyyy'
+            }
+        }
+    };
+    
+    const chart = new ApexCharts(document.getElementById('bookingsChart'), options);
+    chart.render();
+}
+
+// Render recent bookings table
+function renderRecentBookings(bookings) {
+    const tbody = document.querySelector('#recentBookingsTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (bookings.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#recentBookingsTable').style.display = 'none';
+        return;
+    }
+    
+    tbody.innerHTML = bookings.map(booking => `
+        <tr>
+            <td><strong>${booking.pnr}</strong></td>
+            <td>${booking.user_name}</td>
+            <td>${booking.route}</td>
+            <td>${booking.date}</td>
+            <td><strong>${booking.currency} ${booking.amount.toFixed(2)}</strong></td>
+            <td><span class="badge badge-${getStatusClass(booking.status)}">${booking.status}</span></td>
+            <td class="text-muted">${booking.created_at}</td>
+        </tr>
+    `).join('');
+}
+
+// Get badge class for status
+function getStatusClass(status) {
+    const statusMap = {
+        'pending': 'warning',
+        'confirmed': 'success',
+        'cancelled': 'danger',
+        'refunded': 'secondary'
+    };
+    return statusMap[status] || 'secondary';
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadDashboardMetrics);
+</script>
+{% endblock %}

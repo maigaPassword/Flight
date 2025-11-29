@@ -1,228 +1,799 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<section class="portal-container" style="max-width:1200px;margin:2rem auto;display:grid;grid-template-columns:280px 1fr;gap:1.5rem;">
-  <aside class="portal-sidebar" style="background:#0b1b4a;border-radius:14px;padding:1rem;box-shadow:0 10px 30px rgba(0,0,0,0.15);height:fit-content;position:sticky;top:90px;align-self:start;">
-    <h3 style="color:#90e0ef;margin:0 0 0.75rem 0;">User Portal</h3>
-    <nav class="portal-nav" aria-label="User Portal Navigation">
-      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.5rem;">
-        <li><button class="portal-tab-btn active" data-target="#tab-user-info">User Information</button></li>
-        <li><button class="portal-tab-btn" data-target="#tab-flight-details">Flight Details</button></li>
-        <li><button class="portal-tab-btn" data-target="#tab-ticket-details">Ticket Details</button></li>
-      </ul>
-    </nav>
-  </aside>
-
-  <div class="portal-content" style="background:#ffffff;border-radius:14px;padding:1.25rem 1.5rem;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
-    <!-- Tabs content -->
-    <div id="tab-user-info" class="portal-tab" role="region" aria-labelledby="User Information">
-  <h2 style="color:#03045e;margin-bottom:0.75rem;display:flex;align-items:center;gap:.75rem;">User Information</h2>
-
-      <!-- Profile (read-only from User table) -->
-      <div class="passport-list-card account-card" style="margin-bottom:1.75rem;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-          <div>
-            <label class="portal-label">Username</label>
-            <div class="account-value">{{ user.name }}</div>
-          </div>
-          <div>
-            <label class="portal-label">Email</label>
-            <div class="account-value">{{ user.email }}</div>
-          </div>
-        </div>
+<div class="modern-portal">
+  <!-- Header -->
+  <div class="portal-header">
+    <div class="header-content">
+      <div class="header-text">
+        <h1>My Account</h1>
+        <p>Manage your profile, passports, and payment methods</p>
       </div>
-
-      <!-- Passport List -->
-      <div class="passport-list-card">
-        <div class="passport-list-header">
-          <h3 class="passport-list-title">Saved Passports</h3>
-          {% if passports and passports|length > 0 %}<span class="count-pill">{{ passports|length }} total</span>{% endif %}
-        </div>
-        {% if passports and passports|length > 0 %}
-          <div class="table-wrapper">
-            <table class="passport-table">
-              <thead>
-                <tr>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>Passport Number</th>
-                  <th>Created</th>
-                  <th style="width:140px;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for p in passports %}
-                {% if editing_passport and editing_passport.Passport_id == p.Passport_id %}
-                <tr class="passport-row editing">
-                  <form method="POST" action="{{ url_for('user_portal') }}" style="display:contents;" aria-label="Save passport {{ p.Passport_id }}">
-                    <td data-label="First Name">
-                      <input name="first_name" value="{{ p.First_name }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;" />
-                    </td>
-                    <td data-label="Last Name">
-                      <input name="last_name" value="{{ p.last_name }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;" />
-                    </td>
-                    <td data-label="Passport" class="mono">
-                      <input name="passport_number" value="{{ p.passport_number }}" required class="portal-input" style="padding:.55rem .6rem;font-size:.75rem;letter-spacing:.5px;" />
-                    </td>
-                    <td data-label="Created">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
-                    <td class="actions">
-                      <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
-                      <input type="hidden" name="action" value="save" />
-                      <button type="submit" class="mini-btn edit-btn" style="background:#defce7;border-color:#86efac;color:#166534;" aria-label="Save passport {{ p.Passport_id }}">Save</button>
-                      <a href="{{ url_for('user_portal') }}" class="mini-btn" style="background:#e6faff;border-color:#94d6e7;color:#075985;" aria-label="Cancel editing passport {{ p.Passport_id }}">Cancel</a>
-                    </td>
-                  </form>
-                </tr>
-                {% else %}
-                <tr class="passport-row">
-                  <td data-label="First Name">{{ p.First_name }}</td>
-                  <td data-label="Last Name">{{ p.last_name }}</td>
-                  <td data-label="Passport" class="mono">{{ p.passport_number }}</td>
-                  <td data-label="Created">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
-                  <td class="actions">
-                    <a href="{{ url_for('user_portal') }}?edit={{ p.Passport_id }}" class="mini-btn edit-btn" aria-label="Edit passport {{ p.Passport_id }}">Edit</a>
-                    <form method="POST" action="{{ url_for('user_portal') }}" class="inline-form" aria-label="Delete passport {{ p.Passport_id }}">
-                      <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
-                      <input type="hidden" name="action" value="delete" />
-                      <button type="submit" class="mini-btn delete-btn" onclick="return confirm('Delete this passport?');">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="empty-passports">No passports saved yet. Use the form below to add one.</div>
-        {% endif %}
-      </div>
-
-      <!-- Passport Form (Add / Edit) -->
-      {% if not editing_passport %}
-      <form method="POST" action="{{ url_for('user_portal') }}" style="background:#f8fafc;border:1px solid #e2e8f0;padding:1.25rem 1.25rem 1rem;border-radius:14px;max-width:900px;box-shadow:0 4px 18px rgba(0,0,0,0.05);">
-        <h3 style="margin:0 0 1rem 0;color:#0f172a;font-size:1.05rem;display:flex;align-items:center;gap:.5rem;">Add Passport</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-          <div>
-            <label class="portal-label" for="first_name">First Name</label>
-            <input id="first_name" name="first_name" type="text" placeholder="First Name" class="portal-input" required />
-          </div>
-          <div>
-            <label class="portal-label" for="last_name">Last Name</label>
-            <input id="last_name" name="last_name" type="text" placeholder="Last Name" class="portal-input" required />
-          </div>
-          <div>
-            <label class="portal-label" for="passport_number">Passport Number</label>
-            <input id="passport_number" name="passport_number" type="text" placeholder="e.g. A12345678" class="portal-input" required />
-          </div>
-        </div>
-        <input type="hidden" name="action" value="save" />
-        <button type="submit" class="btn" style="margin-top:1.25rem;">Save Passport</button>
-      </form>
-      {% endif %}
-    </div>
-
-    <div id="tab-flight-details" class="portal-tab" hidden role="region" aria-labelledby="Flight Details">
-      <h2 style="color:#03045e;margin-bottom:0.75rem;">Flight Details</h2>
-      <p style="color:#475569;margin-bottom:1rem;">Your upcoming and past flights will appear here.</p>
-
-      <div style="border:1px dashed #e5e7eb;border-radius:12px;padding:1rem;color:#64748b;">
-        No flight data yet. Search and book a flight to see details here.
-      </div>
-    </div>
-
-    <div id="tab-ticket-details" class="portal-tab" hidden role="region" aria-labelledby="Ticket Details">
-      <h2 style="color:#03045e;margin-bottom:0.75rem;">Ticket Details</h2>
-      <p style="color:#475569;margin-bottom:1rem;">E-tickets and receipts will show up here after booking.</p>
-
-      <div style="border:1px dashed #e5e7eb;border-radius:12px;padding:1rem;color:#64748b;">
-        No tickets available yet.
+      <div class="user-avatar">
+        <span>{{ user.name[0].upper() if user.name else 'U' }}</span>
       </div>
     </div>
   </div>
-</section>
+
+  <!-- Navigation Tabs -->
+  <div class="tab-navigation">
+    <button class="tab-btn active" data-tab="profile">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+      </svg>
+      Profile
+    </button>
+    <button class="tab-btn" data-tab="passports">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      Passports
+    </button>
+    <button class="tab-btn" data-tab="payments">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+      </svg>
+      Payments
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content-container">
+    <!-- Profile Tab -->
+    <div class="tab-content active" id="profile">
+      <div class="content-card">
+        <h2>Account Information</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Username</label>
+            <div class="value">{{ user.name }}</div>
+          </div>
+          <div class="info-item">
+            <label>Email Address</label>
+            <div class="value">{{ user.email }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Passports Tab -->
+    <div class="tab-content" id="passports">
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Saved Passports</h2>
+          {% if passports and passports|length > 0 %}
+          <span class="badge">{{ passports|length }} Total</span>
+          {% endif %}
+        </div>
+
+        {% if passports and passports|length > 0 %}
+        <div class="passport-grid">
+          {% for p in passports %}
+          {% if editing_passport and editing_passport.Passport_id == p.Passport_id %}
+          <!-- Edit Mode -->
+          <form method="POST" action="{{ url_for('user_portal') }}" class="passport-card editing">
+            <div class="passport-icon">✏️</div>
+            <div class="passport-details">
+              <input name="first_name" value="{{ p.First_name }}" required class="edit-input" placeholder="First Name" />
+              <input name="last_name" value="{{ p.last_name }}" required class="edit-input" placeholder="Last Name" />
+              <input name="passport_number" value="{{ p.passport_number }}" required class="edit-input" placeholder="Passport Number" />
+            </div>
+            <div class="passport-actions">
+              <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
+              <input type="hidden" name="action" value="save" />
+              <button type="submit" class="action-btn save">Save</button>
+              <a href="{{ url_for('user_portal') }}" class="action-btn cancel">Cancel</a>
+            </div>
+          </form>
+          {% else %}
+          <!-- View Mode -->
+          <div class="passport-card">
+            <div class="passport-icon">🛂</div>
+            <div class="passport-details">
+              <div class="passport-name">{{ p.First_name }} {{ p.last_name }}</div>
+              <div class="passport-number">{{ p.passport_number }}</div>
+              <div class="passport-date">Added {{ p.created_at.strftime('%b %d, %Y') if p.created_at else '' }}</div>
+            </div>
+            <div class="passport-actions">
+              <a href="{{ url_for('user_portal') }}?edit={{ p.Passport_id }}" class="action-btn edit">Edit</a>
+              <form method="POST" action="{{ url_for('user_portal') }}" style="display: inline;">
+                <input type="hidden" name="passport_id" value="{{ p.Passport_id }}" />
+                <input type="hidden" name="action" value="delete" />
+                <button type="submit" class="action-btn delete" onclick="return confirm('Delete this passport?');">Delete</button>
+              </form>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🛂</div>
+          <h3>No Passports Saved</h3>
+          <p>Add a passport below to save it for future bookings</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Add Passport Form -->
+      {% if not editing_passport %}
+      <div class="content-card">
+        <h2>Add New Passport</h2>
+        <form method="POST" action="{{ url_for('user_portal') }}" class="add-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>First Name</label>
+              <input name="first_name" type="text" placeholder="John" required />
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input name="last_name" type="text" placeholder="Doe" required />
+            </div>
+            <div class="form-group">
+              <label>Passport Number</label>
+              <input name="passport_number" type="text" placeholder="A12345678" required />
+            </div>
+          </div>
+          <input type="hidden" name="action" value="save" />
+          <button type="submit" class="submit-btn">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Passport
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Payments Tab -->
+    <div class="tab-content" id="payments">
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Payment Methods</h2>
+          {% if cards and cards|length > 0 %}
+          <span class="badge">{{ cards|length }} Card{{ 's' if cards|length != 1 else '' }}</span>
+          {% endif %}
+        </div>
+        <p class="card-desc">Required for Budget Buy auto-booking. Use Stripe test cards for development.</p>
+
+        {% if cards and cards|length > 0 %}
+        <div class="cards-grid">
+          {% for card in cards %}
+          <div class="payment-card">
+            <div class="card-brand {{ card.brand|lower if card.brand else 'unknown' }}">
+              {{ card.brand or 'Card' }}
+            </div>
+            <div class="card-number">•••• •••• •••• {{ card.last4 }}</div>
+            <div class="card-exp">Expires {{ "%02d"|format(card.exp_month or 0) }}/{{ card.exp_year or '' }}</div>
+            <form method="POST" action="{{ url_for('user_portal') }}">
+              <input type="hidden" name="card_id" value="{{ card.User_card_id }}" />
+              <input type="hidden" name="action" value="delete_card" />
+              <button type="submit" class="delete-card-btn" onclick="return confirm('Delete this payment method?');">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">💳</div>
+          <h3>No Payment Methods</h3>
+          <p>Add a payment method to enable auto-booking</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Add Card Form -->
+      <div class="content-card">
+        <h2>Add Payment Method</h2>
+        
+        <div class="test-card-notice">
+          <div class="notice-header">🧪 Stripe Test Cards</div>
+          <div class="test-cards">
+            <div><strong>Visa:</strong> 4242 4242 4242 4242</div>
+            <div><strong>Mastercard:</strong> 5555 5555 5555 4444</div>
+            <div><strong>Amex:</strong> 3782 822463 10005</div>
+          </div>
+          <div class="notice-footer">
+            Any future expiry date • Any 3-4 digit CVV
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('user_portal') }}" class="add-form">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Card Number</label>
+              <input 
+                name="card_number" 
+                type="text" 
+                placeholder="4242 4242 4242 4242" 
+                maxlength="19"
+                required 
+                oninput="this.value = this.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim()"
+              />
+            </div>
+            <div class="form-group">
+              <label>Expiry Month</label>
+              <input name="exp_month" type="number" placeholder="12" min="1" max="12" required />
+            </div>
+            <div class="form-group">
+              <label>Expiry Year</label>
+              <input name="exp_year" type="number" placeholder="2030" min="2025" max="2050" required />
+            </div>
+            <div class="form-group">
+              <label>CVV <span class="cvv-note">(not stored)</span></label>
+              <input 
+                name="card_cvv" 
+                type="text" 
+                placeholder="123" 
+                maxlength="4" 
+                required
+                oninput="this.value = this.value.replace(/\D/g, '')"
+              />
+            </div>
+          </div>
+          <input type="hidden" name="action" value="save_card" />
+          <button type="submit" class="submit-btn">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Card
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
-  .portal-tab-btn {
-    width: 100%;
-    text-align: left;
-    padding: 0.75rem 1rem;
-    border: 1px solid rgba(144,224,239,0.25);
-    background: rgba(144,224,239,0.08);
-    color: #e0f7ff;
-    border-radius: 10px;
-    cursor: pointer;
+  .modern-portal {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  /* Header */
+  .portal-header {
+    background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 119, 182, 0.2);
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-text h1 {
+    color: white;
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .header-text p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0077b6;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Tab Navigation */
+  .tab-navigation {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #64748b;
+    font-size: 1rem;
     font-weight: 600;
-    transition: all 0.2s ease;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: -2px;
   }
-  .portal-tab-btn:hover { background: rgba(144,224,239,0.15); border-color: rgba(144,224,239,0.5); }
-  .portal-tab-btn.active { background: linear-gradient(135deg, #48cae4, #90e0ef); color: #052c47; border-color: transparent; }
-  .portal-label {display:block;font-weight:600;color:#0f172a;margin-bottom:0.35rem;font-size:.7rem;letter-spacing:.45px;text-transform:uppercase;}
-  .portal-input {width:100%;padding:.75rem 1rem;border:1px solid #cbd5e1;border-radius:10px;background:#ffffff;font-size:.9rem;transition:border .2s, box-shadow .2s;}
-  .portal-input:focus {outline:none;border-color:#48cae4;box-shadow:0 0 0 3px rgba(72,202,228,0.35);}
-  .portal-input.readonly {background:#f1f5f9;color:#475569;cursor:not-allowed;}
-  @media (prefers-color-scheme: dark){
-    .portal-input.readonly {background:#1e293b;color:#94a3b8;}
+
+  .tab-btn:hover {
+    color: #0077b6;
+    border-bottom-color: #90e0ef;
   }
-  .account-card {padding:1.1rem 1.25rem 1rem;}
-  .account-value {font-weight:700;color:#0f172a;font-size:1.3rem;padding:.2rem 0 .2rem;}
-  @media (max-width:520px){
-    .account-value {font-size:1.15rem;}
+
+  .tab-btn.active {
+    color: #0077b6;
+    border-bottom-color: #0077b6;
   }
-  @media (prefers-color-scheme: dark){
-    .account-value {color:#e2e8f0;}
+
+  .tab-btn svg {
+    width: 20px;
+    height: 20px;
   }
-</style>
-<style>
-  /* Coherent card styling for passport list to match form */
-  .passport-list-card {background:#f8fafc;border:1px solid #e2e8f0;padding:1.1rem 1.25rem 1rem;border-radius:14px;max-width:900px;margin-bottom:1.75rem;box-shadow:0 4px 18px rgba(0,0,0,0.05);} 
-  .passport-list-header {display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;}
-  .passport-list-title {margin:0;font-size:1.0rem;font-weight:700;color:#0f172a;letter-spacing:.25px;display:flex;align-items:center;gap:.5rem;}
-  .count-pill {background:#e0faff;color:#0369a1;font-size:.6rem;font-weight:700;padding:.35rem .55rem;border-radius:6px;letter-spacing:.5px;}
-  .table-wrapper {overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;}
-  .passport-table {width:100%;border-collapse:separate;border-spacing:0;font-size:.8rem;}
-  .passport-table thead tr {background:linear-gradient(135deg,#e2f3ff,#f1f9ff);}
-  .passport-table th {text-align:left;font-weight:700;color:#0f172a;padding:.6rem .75rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #cbd5e1;}
-  .passport-table td {padding:.55rem .75rem;border-bottom:1px solid #e2e8f0;color:#334155;vertical-align:middle;}
-  .passport-table td.mono {font-family:"Segoe UI", monospace;letter-spacing:.6px;font-weight:600;color:#1e293b;}
-  .passport-row.editing {background:#fff8e1;}
-  .passport-row:hover {background:#f5fbff;}
-  .passport-table tr:last-child td {border-bottom:none;}
-  .actions {display:flex;gap:.4rem;white-space:nowrap;}
-  .mini-btn {display:inline-block;padding:.45rem .65rem;border-radius:8px;font-size:.65rem;font-weight:700;letter-spacing:.4px;text-decoration:none;border:1px solid #94d6e7;background:#e6faff;color:#075985;transition:.2s;line-height:1;}
-  .mini-btn:hover {background:#d5f4ff;border-color:#48cae4;color:#023e8a;transform:translateY(-2px);}
-  .mini-btn.edit-btn {background:#e6faff;border-color:#94d6e7;color:#075985;}
-  .mini-btn.delete-btn {background:#ffe8e6;border-color:#fca5a5;color:#b91c1c;}
-  .mini-btn.delete-btn:hover {background:#ffdad6;border-color:#ef4444;color:#991b1b;}
-  .inline-form {display:inline;}
-  .empty-passports {border:1px dashed #cbd5e1;padding:1rem;border-radius:10px;color:#64748b;font-size:.75rem;background:#ffffff;}
-  @media (max-width:640px){
-    .passport-table th, .passport-table td {padding:.5rem .6rem;}
-    .mini-btn {padding:.4rem .55rem;font-size:.6rem;}
+
+  /* Tab Content */
+  .tab-content-container {
+    min-height: 400px;
   }
-  @media (max-width:480px){
-    .passport-list-card {padding:.9rem 1rem .75rem;}
-    .passport-table th {font-size:.6rem;}
-    .passport-table td {font-size:.65rem;}
-    .mini-btn {padding:.35rem .5rem;font-size:.55rem;}
+
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .content-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .content-card h2 {
+    color: #1e293b;
+    font-size: 1.5rem;
+    margin: 0 0 1.5rem 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-header h2 {
+    margin: 0;
+  }
+
+  .badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .card-desc {
+    color: #64748b;
+    margin: -0.5rem 0 1.5rem 0;
+    font-size: 0.95rem;
+  }
+
+  /* Profile Info */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .info-item label {
+    display: block;
+    font-size: 0.85rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .info-item .value {
+    font-size: 1.25rem;
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  /* Passport Cards */
+  .passport-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .passport-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s;
+  }
+
+  .passport-card:hover {
+    border-color: #0077b6;
+    box-shadow: 0 4px 16px rgba(0, 119, 182, 0.1);
+  }
+
+  .passport-card.editing {
+    background: #fffbeb;
+    border-color: #fbbf24;
+  }
+
+  .passport-icon {
+    font-size: 2.5rem;
+  }
+
+  .passport-details {
+    flex: 1;
+  }
+
+  .passport-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+  }
+
+  .passport-number {
+    font-family: 'Courier New', monospace;
+    color: #0077b6;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .passport-date {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .passport-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .action-btn.edit {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #93c5fd;
+  }
+
+  .action-btn.edit:hover {
+    background: #bfdbfe;
+  }
+
+  .action-btn.delete {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+  }
+
+  .action-btn.delete:hover {
+    background: #fecaca;
+  }
+
+  .action-btn.save {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+  }
+
+  .action-btn.cancel {
+    background: #e2e8f0;
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+
+  .edit-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 2px solid #fbbf24;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  /* Payment Cards */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .payment-card {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .card-brand {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  .card-brand.visa {
+    background: #1434cb;
+  }
+
+  .card-brand.mastercard {
+    background: #eb001b;
+  }
+
+  .card-brand.american {
+    background: #006fcf;
+  }
+
+  .card-brand.unknown {
+    background: #64748b;
+  }
+
+  .card-number {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-exp {
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .delete-card-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(239, 68, 68, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .delete-card-btn:hover {
+    background: #ef4444;
+  }
+
+  /* Forms */
+  .add-form {
+    margin-top: 1.5rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .cvv-note {
+    color: #94a3b8;
+    font-weight: 400;
+    font-size: 0.75rem;
+  }
+
+  .form-group input {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #0077b6;
+    box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 119, 182, 0.3);
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .empty-state h3 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state p {
+    color: #64748b;
+  }
+
+  /* Test Card Notice */
+  .test-card-notice {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 2px solid #93c5fd;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .notice-header {
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .test-cards {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: #1e3a8a;
+  }
+
+  .notice-footer {
+    font-size: 0.8rem;
+    color: #3730a3;
+    font-style: italic;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .modern-portal {
+      padding: 0 0.5rem;
+    }
+
+    .portal-header {
+      padding: 1.5rem;
+    }
+
+    .header-text h1 {
+      font-size: 1.5rem;
+    }
+
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      font-size: 1.5rem;
+    }
+
+    .tab-navigation {
+      overflow-x: auto;
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .content-card {
+      padding: 1.5rem 1rem;
+    }
+
+    .passport-card {
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+    }
+
+    .passport-actions {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+    }
+
+    .cards-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 
 <script>
-  (function(){
-    const btns = document.querySelectorAll('.portal-tab-btn');
-    const tabs = document.querySelectorAll('.portal-tab');
-    btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        btns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const target = btn.getAttribute('data-target');
-        tabs.forEach(t => {
-          if ("#" + t.id === target) { t.hidden = false; }
-          else { t.hidden = true; }
-        });
-      });
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Remove active from all buttons and content
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      // Add active to clicked button
+      btn.classList.add('active');
+      
+      // Show corresponding content
+      const tabId = btn.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
     });
-  })();
+  });
 </script>
 {% endblock %}

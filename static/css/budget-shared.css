@@ -1,0 +1,113 @@
+/* Shared styles for Budget Buy and Active Requests pages */
+
+/* Background overrides for light theme */
+.bg-slate-900 { 
+    background-color: #f8fafc !important; 
+}
+
+.bg-slate-800, 
+.card.bg-slate-800 { 
+    background-color: white !important; 
+    border: 1px solid #e2e8f0; 
+}
+
+.bg-slate-700 { 
+    background-color: white !important; 
+    border: 1px solid #cbd5e1; 
+    color: #1e293b !important; 
+}
+
+/* Text color overrides */
+.text-white { 
+    color: #1e293b !important; 
+    font-weight: 600; 
+}
+
+.text-slate-400 { 
+    color: #64748b !important; 
+}
+
+.text-cyan-400 { 
+    color: #0077b6 !important; 
+    font-weight: 700; 
+}
+
+.text-green-400,
+.text-emerald-400 { 
+    color: #16a34a !important; 
+    font-weight: 700; 
+}
+
+/* Border overrides */
+.border-slate-700 { 
+    border-color: #e2e8f0 !important; 
+}
+
+.border-slate-700\/50 { 
+    border-color: #e2e8f0 !important; 
+}
+
+/* Hover states */
+.hover\:bg-slate-700\/50:hover { 
+    background-color: #f1f5f9 !important; 
+}
+
+/* Badge styles */
+.badge-primary { 
+    background-color: #e0f2fe; 
+    color: #0369a1; 
+    font-weight: 600; 
+}
+
+.badge-warning { 
+    background-color: #fef3c7; 
+    color: #92400e; 
+    font-weight: 600; 
+}
+
+.badge-info { 
+    background-color: #dbeafe; 
+    color: #1e40af; 
+    font-weight: 600; 
+}
+
+.badge-success { 
+    background-color: #d1fae5; 
+    color: #065f46; 
+    font-weight: 600; 
+}
+
+.badge-error { 
+    background-color: #fee2e2; 
+    color: #991b1b; 
+    font-weight: 600; 
+}
+
+.badge-ghost { 
+    background-color: #f1f5f9; 
+    color: #475569; 
+    font-weight: 600; 
+}
+
+/* Button styles */
+.btn-error { 
+    background-color: #fee2e2; 
+    color: #991b1b; 
+    border: none; 
+    font-weight: 600; 
+}
+
+.btn-error:hover { 
+    background-color: #fecaca; 
+}
+
+/* Card and heading overrides */
+.card-title { 
+    font-weight: 700 !important; 
+    color: #03045e !important; 
+}
+
+h2, h3 { 
+    font-weight: 700 !important; 
+    color: #03045e !important; 
+}

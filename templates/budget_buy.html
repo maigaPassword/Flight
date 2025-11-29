@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Buy - Auto-Book & Price Alerts{% endblock %}
+
+{% block head %}
+<!-- Tailwind CSS + DaisyUI -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/budget-shared.css') }}">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#0077b6',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen" style="background-color: #ffffff;">
+    <!-- Header -->
+    <div class="py-8 shadow-xl" style="background-color: #ffffff;">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl font-bold text-center" style="color: #0077b6;">Budget Buy & Price Alerts</h1>
+            <p class="text-center text-lg mt-2" style="color: #00b4d8;">Set your budget, we'll find the perfect flight</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Form Section -->
+        <div class="grid lg:grid-cols-2 gap-6 mb-8">
+            <!-- Left Column: Flight Details -->
+            <div class="card bg-slate-800 shadow-2xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-4 text-cyan-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Flight Details
+                    </h2>
+                    
+                    <form id="budgetBuyForm" method="POST" action="/budget-buy" onsubmit="return handleFormSubmit(event);">
+                        <!-- From/To -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">From</span>
+                                </label>
+                                <input type="text" name="origin" placeholder="JFK" 
+                                       class="input input-bordered w-full bg-slate-700 text-white" 
+                                       required maxlength="3" pattern="[A-Za-z]{3}">
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">To</span>
+                                </label>
+                                <input type="text" name="destination" placeholder="LAX" 
+                                       class="input input-bordered w-full bg-slate-700 text-white" 
+                                       required maxlength="3" pattern="[A-Za-z]{3}">
+                            </div>
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Departure</span>
+                                </label>
+                                <input type="date" name="departure_date" 
+                                       class="input input-bordered w-full bg-slate-700 text-white" required>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Return (Optional)</span>
+                                </label>
+                                <input type="date" name="return_date" 
+                                       class="input input-bordered w-full bg-slate-700 text-white">
+                            </div>
+                        </div>
+
+                        <!-- Duration & Airline -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Duration</span>
+                                </label>
+                                <select name="trip_duration_weeks" class="select select-bordered w-full bg-slate-700 text-white">
+                                    <option value="">Not specified</option>
+                                    <option value="1">1 Week</option>
+                                    <option value="2">2 Weeks</option>
+                                    <option value="3">3 Weeks</option>
+                                    <option value="4">4 Weeks</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Airline (Optional)</span>
+                                </label>
+                                <input type="text" name="preferred_airline" placeholder="AA, DL" 
+                                       class="input input-bordered w-full bg-slate-700 text-white" maxlength="3">
+                            </div>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="mb-4">
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-3">
+                                    <input type="checkbox" name="non_stop_only" class="checkbox checkbox-primary" />
+                                    <span class="label-text text-white">Non-stop flights only</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Max Stops</span>
+                                </label>
+                                <select name="max_stops" class="select select-bordered w-full bg-slate-700 text-white">
+                                    <option value="">Any</option>
+                                    <option value="0">Non-stop</option>
+                                    <option value="1">1 Stop</option>
+                                    <option value="2">2 Stops</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-xs font-semibold text-cyan-400 uppercase">Departure Time</span>
+                                </label>
+                                <select name="preferred_time" class="select select-bordered w-full bg-slate-700 text-white">
+                                    <option value="">Any time</option>
+                                    <option value="morning">Morning</option>
+                                    <option value="afternoon">Afternoon</option>
+                                    <option value="evening">Evening</option>
+                                </select>
+                            </div>
+                        </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Budget + Mode -->
+            <div class="space-y-6">
+                <!-- Budget Card -->
+                <div class="card bg-slate-800 shadow-2xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4 text-cyan-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Budget Range
+                        </h2>
+                        
+                        <!-- Budget Display -->
+                        <div class="flex justify-center items-center gap-6 mb-6">
+                            <div class="text-center">
+                                <div class="text-xs text-slate-400 uppercase font-bold mb-1">Min</div>
+                                <div class="text-3xl font-bold text-cyan-400" id="minBudgetDisplay">$500</div>
+                            </div>
+                            <div class="text-2xl text-slate-600">—</div>
+                            <div class="text-center">
+                                <div class="text-xs text-slate-400 uppercase font-bold mb-1">Max</div>
+                                <div class="text-3xl font-bold text-cyan-400" id="maxBudgetDisplay">$1500</div>
+                            </div>
+                        </div>
+
+                        <!-- Dual Range Slider -->
+                        <div class="relative h-2 mb-6">
+                            <div class="absolute w-full h-1 bg-slate-700 rounded top-1"></div>
+                            <div class="absolute h-1 bg-cyan-500 rounded top-1" id="sliderRange"></div>
+                            <input type="range" id="min_budget" name="min_budget" 
+                                   min="0" max="5000" value="500" step="50" 
+                                   class="range range-primary range-xs absolute w-full" style="pointer-events: none;">
+                            <input type="range" id="max_budget" name="max_budget" 
+                                   min="0" max="5000" value="1500" step="50" 
+                                   class="range range-primary range-xs absolute w-full" style="pointer-events: none;">
+                        </div>
+
+                        <!-- Budget Inputs -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="min_budget_input" min="0" max="5000" value="500" step="50" 
+                                   class="input input-bordered w-full bg-slate-700 text-white text-center font-bold">
+                            <input type="number" id="max_budget_input" min="0" max="5000" value="1500" step="50" 
+                                   class="input input-bordered w-full bg-slate-700 text-white text-center font-bold">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode Selection Card -->
+                <div class="card bg-slate-800 shadow-2xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl mb-4 text-cyan-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            Booking Mode
+                        </h2>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="mode" value="auto_book" class="peer hidden" required checked>
+                                <div class="p-4 border-2 border-slate-700 rounded-lg text-center peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 hover:border-slate-600 transition">
+                                    <div class="text-3xl mb-2">🚀</div>
+                                    <div class="font-bold text-white mb-1">Auto-Book</div>
+                                    <div class="text-xs text-slate-400">Book automatically</div>
+                                </div>
+                            </label>
+                            
+                            <label class="cursor-pointer">
+                                <input type="radio" name="mode" value="alert_only" class="peer hidden" required>
+                                <div class="p-4 border-2 border-slate-700 rounded-lg text-center peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 hover:border-slate-600 transition">
+                                    <div class="text-3xl mb-2">📧</div>
+                                    <div class="font-bold text-white mb-1">Alert Only</div>
+                                    <div class="text-xs text-slate-400">Get notified first</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary w-full mt-6 text-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                            Start Tracking
+                        </button>
+                    </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="card bg-slate-800 shadow-2xl" id="requests">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-6 text-cyan-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    Your Active Requests
+                </h2>
+                
+                <div id="requestsContainer">
+                    {% if requests %}
+                        <div class="overflow-x-auto">
+                            <table class="table w-full">
+                                <thead>
+                                    <tr class="border-b border-slate-700">
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Route</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Dates</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Budget</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Mode</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Status</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Updated</th>
+                                        <th class="bg-transparent text-cyan-400 text-xs uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for req in requests %}
+                                    <tr class="hover:bg-slate-700/50 border-b border-slate-700/50">
+                                        <td class="text-white font-bold">{{ req.origin }} → {{ req.destination }}</td>
+                                        <td class="text-sm">
+                                            {{ req.departure_date.strftime('%b %d') if req.departure_date }}
+                                            {% if req.return_date %}
+                                                <br><span class="text-xs text-slate-400">Return: {{ req.return_date.strftime('%b %d') }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-cyan-400 font-bold text-sm">${{ req.min_budget }} - ${{ req.max_budget }}</td>
+                                        <td>
+                                            <span class="badge {% if req.mode == 'auto_book' %}badge-primary{% else %}badge-warning{% endif %} badge-sm">
+                                                {{ 'Auto-Book' if req.mode == 'auto_book' else 'Alert' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-sm 
+                                                {% if req.status == 'searching' %}badge-info{% endif %}
+                                                {% if req.status == 'booked' %}badge-success{% endif %}
+                                                {% if req.status == 'cancelled' %}badge-error{% endif %}
+                                                {% if req.status == 'pending' %}badge-ghost{% endif %}
+                                                {% if req.status == 'price_found' %}badge-warning{% endif %}">
+                                                {{ req.status|replace('_', ' ')|title }}
+                                            </span>
+                                        </td>
+                                        <td class="text-xs text-slate-400">
+                                            {{ req.last_checked_at.strftime('%b %d, %I:%M %p') if req.last_checked_at else 'Not checked' }}
+                                        </td>
+                                        <td>
+                                            {% if req.status not in ['booked', 'cancelled'] %}
+                                            <div class="flex gap-2">
+                                                <button class="btn btn-info btn-xs" onclick="checkNow({{ req.request_id }})">Check Now</button>
+                                                <button class="btn btn-error btn-xs" onclick="cancelRequest({{ req.request_id }})">Cancel</button>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-16 text-slate-400">
+                            <div class="text-6xl mb-4 opacity-20">📭</div>
+                            <h3 class="text-xl font-bold text-white mb-2">No Active Requests</h3>
+                            <p>Submit the form above to start tracking flight prices!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Passport Modal (DaisyUI) -->
+<input type="checkbox" id="passportModal" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box bg-slate-800 text-white">
+        <h3 class="font-bold text-lg mb-4">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+            </svg>
+            Add Passport Information
+        </h3>
+        <p class="text-sm text-slate-300 mb-4">Auto-booking requires your passport information.</p>
+        
+        <form id="passportForm">
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text text-white">First Name</span></label>
+                <input type="text" name="first_name" class="input input-bordered bg-slate-700 text-white" required>
+            </div>
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text text-white">Last Name</span></label>
+                <input type="text" name="last_name" class="input input-bordered bg-slate-700 text-white" required>
+            </div>
+            <div class="form-control mb-4">
+                <label class="label"><span class="label-text text-white">Passport Number</span></label>
+                <input type="text" name="passport_number" class="input input-bordered bg-slate-700 text-white" required>
+            </div>
+            
+            <div class="modal-action">
+                <label for="passportModal" class="btn btn-ghost">Cancel</label>
+                <button type="submit" class="btn btn-primary">Save & Continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="successMessage" class="toast toast-top toast-end" style="display: none;">
+    <div class="alert alert-success">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="successText">Request submitted successfully!</span>
+    </div>
+</div>
+
+<script>
+// Inline form handler to ensure it intercepts submission
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('🎯 Inline handler called');
+    
+    const form = document.getElementById('budgetBuyForm');
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/budget-buy', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success toast
+            const toast = document.getElementById('successMessage');
+            const text = document.getElementById('successText');
+            if (toast && text) {
+                text.textContent = '✅ Budget tracking request created successfully!';
+                toast.style.display = 'block';
+            }
+            
+            // Reset form
+            form.reset();
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/active-requests';
+            }, 2000);
+        } else {
+            alert(result.message || 'Failed to submit request');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    }
+    
+    return false;
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/budget_buy.js') }}"></script>
+{% endblock %}

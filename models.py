@@ -28,6 +28,7 @@ class User(db.Model):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     cards = relationship("UserCardInformation", back_populates="user", cascade="all, delete-orphan")
@@ -133,6 +134,257 @@ class Ticket(db.Model):
     fare_class: Mapped[Optional[str]] = mapped_column(String(32))
     Ticket_bought: Mapped[bool] = mapped_column(Boolean, default=False)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class BudgetBuyRequest(db.Model):
+    """
+    Budget Buy feature: Users set price alerts or auto-booking when flights match their budget.
+    System monitors prices and either books automatically or sends alerts.
+    """
+    __tablename__ = "BudgetBuyRequest"
+    request_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("User.user_id", ondelete="CASCADE"), nullable=False)
+    
+    # Flight Details
+    origin: Mapped[str] = mapped_column(String(3), nullable=False)
+    destination: Mapped[str] = mapped_column(String(3), nullable=False)
+    departure_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    return_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    trip_duration_weeks: Mapped[Optional[int]] = mapped_column(Integer)  # 2 weeks, 3 weeks, etc.
+    
+    # Preferences
+    non_stop_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    max_stops: Mapped[Optional[int]] = mapped_column(Integer)
+    preferred_time: Mapped[Optional[str]] = mapped_column(String(32))  # Morning/Afternoon/Night
+    preferred_airline: Mapped[Optional[str]] = mapped_column(String(3))  # IATA code
+    
+    # Budget Range (ALWAYS a range)
+    min_budget: Mapped[float] = mapped_column(Float, nullable=False)
+    max_budget: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default='USD')
+    
+    # Mode Selection
+    mode: Mapped[str] = mapped_column(String(16), nullable=False)  # 'auto_book' or 'alert_only'
+    
+    # Status Tracking
+    status: Mapped[str] = mapped_column(String(32), default='pending')  
+    # Status values: pending, searching, price_found, booked, alert_sent, cancelled
+    
+    # Booking Information (if auto-booked)
+    booked_ticket_id: Mapped[Optional[int]] = mapped_column(Integer, db.ForeignKey("Ticket.ticket_id", ondelete="SET NULL"))
+    booked_price: Mapped[Optional[float]] = mapped_column(Float)
+    booking_confirmation: Mapped[Optional[str]] = mapped_column(String(64))
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    last_checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    # Relationships
+    user = relationship("User", backref="budget_requests")
+    
+    def __repr__(self) -> str:
+        return f"<BudgetBuyRequest {self.origin}-{self.destination} ${self.min_budget}-${self.max_budget}>"
+
+
+class Booking(db.Model):
+    """Admin-managed flight bookings"""
+    __tablename__ = "Booking"
+    booking_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("User.user_id", ondelete="CASCADE"), nullable=False)
+    pnr: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
+    
+    # Flight details
+    origin: Mapped[str] = mapped_column(String(3), nullable=False)
+    destination: Mapped[str] = mapped_column(String(3), nullable=False)
+    departure_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    return_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    airline: Mapped[str] = mapped_column(String(3), nullable=False)
+    flight_number: Mapped[Optional[str]] = mapped_column(String(32))
+    
+    # Passengers (JSON stored as text)
+    passengers_json: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    # Pricing
+    base_price: Mapped[float] = mapped_column(Float, nullable=False)
+    taxes: Mapped[float] = mapped_column(Float, default=0.0)
+    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default='USD')
+    
+    # Status tracking
+    status: Mapped[str] = mapped_column(String(32), default='pending')  # pending, confirmed, cancelled, refunded
+    
+    # API provider info
+    api_provider: Mapped[Optional[str]] = mapped_column(String(64))  # Amadeus, Duffel, etc.
+    api_booking_reference: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    # Payment
+    payment_id: Mapped[Optional[int]] = mapped_column(Integer, db.ForeignKey("Payment.payment_id", ondelete="SET NULL"))
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    user = relationship("User", backref="bookings")
+    payment = relationship("Payment", back_populates="bookings")
+    
+    def __repr__(self) -> str:
+        return f"<Booking {self.pnr} {self.status}>"
+
+
+class Payment(db.Model):
+    """Payment transactions"""
+    __tablename__ = "Payment"
+    payment_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("User.user_id", ondelete="CASCADE"), nullable=False)
+    
+    # Payment details
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default='USD')
+    status: Mapped[str] = mapped_column(String(32), default='pending')  # pending, completed, failed, refunded
+    
+    # Payment provider info
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)  # Stripe, Checkout, Flutterwave
+    transaction_id: Mapped[Optional[str]] = mapped_column(String(128))
+    payment_method_id: Mapped[Optional[str]] = mapped_column(String(128))  # Token for off-session charges
+    
+    # Card info (NO CVV, NO full PAN)
+    card_last4: Mapped[Optional[str]] = mapped_column(String(4))
+    card_brand: Mapped[Optional[str]] = mapped_column(String(32))
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    user = relationship("User", backref="payments")
+    bookings = relationship("Booking", back_populates="payment")
+    
+    def __repr__(self) -> str:
+        return f"<Payment {self.transaction_id} {self.status}>"
+
+
+class RefundRequest(db.Model):
+    """Refund requests for bookings"""
+    __tablename__ = "RefundRequest"
+    refund_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    booking_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("Booking.booking_id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("User.user_id", ondelete="CASCADE"), nullable=False)
+    payment_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("Payment.payment_id", ondelete="CASCADE"), nullable=False)
+    
+    # Refund details
+    refund_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default='USD')
+    reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Status
+    status: Mapped[str] = mapped_column(String(32), default='pending')  # pending, approved, denied, processed
+    admin_notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Provider refund info
+    provider_refund_id: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    booking = relationship("Booking", backref="refund_requests")
+    user = relationship("User", backref="refund_requests")
+    payment = relationship("Payment", backref="refund_requests")
+    
+    def __repr__(self) -> str:
+        return f"<RefundRequest {self.refund_id} {self.status}>"
+
+
+class FlightAPIProvider(db.Model):
+    """Flight API provider configurations"""
+    __tablename__ = "FlightAPIProvider"
+    provider_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    
+    # Provider info
+    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)  # Amadeus, Duffel, etc.
+    api_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    api_secret: Mapped[str] = mapped_column(String(255), nullable=False)
+    
+    # Pricing
+    markup_percentage: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    # Status
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    # Connection test
+    last_test_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    last_test_status: Mapped[Optional[str]] = mapped_column(String(32))  # success, failed
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    def __repr__(self) -> str:
+        return f"<FlightAPIProvider {self.name} {'active' if self.is_active else 'inactive'}>"
+
+
+class SystemSettings(db.Model):
+    """System-wide settings"""
+    __tablename__ = "SystemSettings"
+    setting_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    
+    # App info
+    app_name: Mapped[str] = mapped_column(String(128), default='Skyela')
+    app_logo: Mapped[Optional[str]] = mapped_column(String(512))
+    
+    # Currency & pricing
+    default_currency: Mapped[str] = mapped_column(String(8), default='USD')
+    global_markup_percentage: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    # SMTP settings
+    smtp_host: Mapped[Optional[str]] = mapped_column(String(255))
+    smtp_port: Mapped[Optional[int]] = mapped_column(Integer)
+    smtp_username: Mapped[Optional[str]] = mapped_column(String(255))
+    smtp_password: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # SMS settings
+    sms_provider: Mapped[Optional[str]] = mapped_column(String(64))
+    sms_api_key: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Timestamps
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    def __repr__(self) -> str:
+        return f"<SystemSettings {self.app_name}>"
+
+
+class APILog(db.Model):
+    """API request/response logs"""
+    __tablename__ = "APILog"
+    log_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    
+    # Log type
+    log_type: Mapped[str] = mapped_column(String(32), nullable=False)  # flight_search, flight_book, webhook
+    
+    # Provider info
+    provider: Mapped[Optional[str]] = mapped_column(String(64))
+    
+    # Request/Response
+    endpoint: Mapped[Optional[str]] = mapped_column(String(512))
+    request_payload: Mapped[Optional[str]] = mapped_column(Text)
+    response_payload: Mapped[Optional[str]] = mapped_column(Text)
+    status_code: Mapped[Optional[int]] = mapped_column(Integer)
+    
+    # Associated records
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, db.ForeignKey("User.user_id", ondelete="SET NULL"))
+    booking_id: Mapped[Optional[int]] = mapped_column(Integer, db.ForeignKey("Booking.booking_id", ondelete="SET NULL"))
+    
+    # Error info
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Timestamp
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    user = relationship("User", backref="api_logs")
+    booking = relationship("Booking", backref="api_logs")
+    
+    def __repr__(self) -> str:
+        return f"<APILog {self.log_type} {self.provider}>"
 
 
 # --------------------

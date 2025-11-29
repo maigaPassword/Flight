@@ -1,0 +1,201 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Flight API Manager{% endblock %}
+{% block page_title %}Flight API Providers{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">API Providers</div>
+        <div class="card-actions">
+            <button class="btn btn-primary" onclick="showAddProviderModal()">
+                <i class="fas fa-plus"></i> Add Provider
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="providersContainer"></div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-plug"></i>
+            <h3>No API Providers Configured</h3>
+            <p>Add flight API providers like Amadeus, Duffel, etc.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Provider Modal -->
+<div id="providerModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Flight API Provider</h3>
+            <button class="modal-close" onclick="closeProviderModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="providerForm">
+                <div class="form-group">
+                    <label class="form-label">Provider Name</label>
+                    <input type="text" id="providerName" class="form-control" placeholder="e.g. Amadeus, Duffel" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="text" id="apiKey" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API Secret</label>
+                    <input type="password" id="apiSecret" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Markup Percentage</label>
+                    <input type="number" id="markup" class="form-control" value="0" step="0.1" min="0">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="isActive" checked>
+                        <span>Active</span>
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeProviderModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProvider()">
+                <i class="fas fa-save"></i> Save Provider
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+
+async function loadProviders() {
+    try {
+        const response = await fetch(`${API_BASE}/flight-api`);
+        const data = await response.json();
+        renderProviders(data.providers);
+    } catch (error) {
+        console.error('Error loading providers:', error);
+    }
+}
+
+function renderProviders(providers) {
+    const container = document.getElementById('providersContainer');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (providers.length === 0) {
+        emptyState.style.display = 'block';
+        container.innerHTML = '';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    container.innerHTML = providers.map(p => `
+        <div class="content-card" style="margin-bottom: 16px;">
+            <div class="card-body" style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+                            ${p.name}
+                            <span class="badge badge-${p.is_active ? 'success' : 'secondary'}">
+                                ${p.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </h4>
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
+                            <div><strong>Markup:</strong> ${p.markup_percentage}%</div>
+                            <div><strong>Last Test:</strong> ${p.last_test_at || 'Never'} 
+                                ${p.last_test_status ? `<span class="badge badge-${p.last_test_status === 'success' ? 'success' : 'danger'}">${p.last_test_status}</span>` : ''}
+                            </div>
+                            <div class="text-muted" style="font-size: 12px;">Added ${p.created_at}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary btn-sm" onclick="testConnection(${p.provider_id})">
+                            <i class="fas fa-plug"></i> Test Connection
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleProvider(${p.provider_id}, ${!p.is_active})">
+                            <i class="fas fa-power-off"></i> ${p.is_active ? 'Disable' : 'Enable'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function testConnection(providerId) {
+    try {
+        const btn = event.target.closest('button');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        
+        const response = await fetch(`${API_BASE}/flight-api/${providerId}/test`, {method: 'POST'});
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Connection test successful!\n\nSample data:\n' + JSON.stringify(result.sample_data, null, 2));
+        } else {
+            alert('Connection test failed: ' + result.message);
+        }
+        
+        loadProviders();
+    } catch (error) {
+        alert('Test failed: ' + error.message);
+        loadProviders();
+    }
+}
+
+async function toggleProvider(providerId, isActive) {
+    try {
+        const response = await fetch(`${API_BASE}/flight-api/${providerId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({is_active: isActive})
+        });
+        const result = await response.json();
+        if (result.success) loadProviders();
+    } catch (error) {
+        alert('Failed to update provider');
+    }
+}
+
+function showAddProviderModal() {
+    document.getElementById('providerModal').classList.add('active');
+}
+
+function closeProviderModal() {
+    document.getElementById('providerModal').classList.remove('active');
+    document.getElementById('providerForm').reset();
+}
+
+async function saveProvider() {
+    try {
+        const data = {
+            name: document.getElementById('providerName').value,
+            api_key: document.getElementById('apiKey').value,
+            api_secret: document.getElementById('apiSecret').value,
+            markup_percentage: parseFloat(document.getElementById('markup').value),
+            is_active: document.getElementById('isActive').checked
+        };
+        
+        const response = await fetch(`${API_BASE}/flight-api`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Provider added successfully');
+            closeProviderModal();
+            loadProviders();
+        }
+    } catch (error) {
+        alert('Failed to add provider');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadProviders);
+</script>
+{% endblock %}

@@ -1,0 +1,380 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Bookings Manager{% endblock %}
+{% block page_title %}Bookings Manager{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="content-card">
+    <div class="card-body">
+        <div class="filters">
+            <div class="filter-item">
+                <label>Status:</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <button class="btn btn-secondary" onclick="loadBookings()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bookings Table -->
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">All Flight Bookings</div>
+        <div class="card-actions">
+            <span id="bookingsCount" class="text-muted">Loading...</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="bookingsTable">
+                <thead>
+                    <tr>
+                        <th>PNR</th>
+                        <th>Customer</th>
+                        <th>Route</th>
+                        <th>Departure</th>
+                        <th>Airline</th>
+                        <th>Amount</th>
+                        <th>API Provider</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <h3>No Bookings Found</h3>
+            <p>Flight bookings will appear here when users make reservations</p>
+        </div>
+        
+        <div id="pagination" class="pagination"></div>
+    </div>
+</div>
+
+<!-- Booking Detail Modal -->
+<div id="bookingModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Booking Details</h3>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Populated by JavaScript -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            <button class="btn btn-danger" id="refundBtn" onclick="initiateRefund()">
+                <i class="fas fa-undo"></i> Process Refund
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+let currentPage = 1;
+let currentBookingId = null;
+
+// Load bookings with filters
+async function loadBookings(page = 1) {
+    try {
+        const status = document.getElementById('statusFilter').value;
+        const response = await fetch(`${API_BASE}/bookings?status=${status}&page=${page}`);
+        const data = await response.json();
+        
+        renderBookingsTable(data.bookings);
+        renderPagination(data.current_page, data.pages);
+        
+        document.getElementById('bookingsCount').textContent = `${data.total} total bookings`;
+        currentPage = page;
+        
+    } catch (error) {
+        console.error('Error loading bookings:', error);
+    }
+}
+
+// Render bookings table
+function renderBookingsTable(bookings) {
+    const tbody = document.querySelector('#bookingsTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (bookings.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#bookingsTable').style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    document.querySelector('#bookingsTable').style.display = 'table';
+    
+    tbody.innerHTML = bookings.map(booking => `
+        <tr>
+            <td><strong>${booking.pnr}</strong></td>
+            <td>
+                <div><strong>${booking.user_name}</strong></div>
+                <div class="text-muted" style="font-size: 12px;">${booking.user_email}</div>
+            </td>
+            <td>${booking.route}</td>
+            <td>${booking.departure_date}</td>
+            <td>
+                <div>${booking.airline || 'N/A'}</div>
+                ${booking.flight_number ? `<div class="text-muted" style="font-size: 12px;">${booking.flight_number}</div>` : ''}
+            </td>
+            <td><strong>${booking.currency} ${booking.total_amount.toFixed(2)}</strong></td>
+            <td>${booking.api_provider || 'N/A'}</td>
+            <td><span class="badge badge-${getStatusClass(booking.status)}">${booking.status}</span></td>
+            <td class="text-muted">${booking.created_at}</td>
+            <td>
+                <button class="btn btn-secondary btn-sm" onclick="viewBookingDetails(${booking.booking_id})">
+                    <i class="fas fa-eye"></i> View
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Render pagination
+function renderPagination(current, total) {
+    const pagination = document.getElementById('pagination');
+    
+    if (total <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    // Previous button
+    html += `<button onclick="loadBookings(${current - 1})" ${current === 1 ? 'disabled' : ''}>
+        <i class="fas fa-chevron-left"></i>
+    </button>`;
+    
+    // Page numbers (show max 5)
+    const start = Math.max(1, current - 2);
+    const end = Math.min(total, current + 2);
+    
+    if (start > 1) {
+        html += `<button onclick="loadBookings(1)">1</button>`;
+        if (start > 2) html += `<span>...</span>`;
+    }
+    
+    for (let i = start; i <= end; i++) {
+        html += `<button onclick="loadBookings(${i})" class="${i === current ? 'active' : ''}">${i}</button>`;
+    }
+    
+    if (end < total) {
+        if (end < total - 1) html += `<span>...</span>`;
+        html += `<button onclick="loadBookings(${total})">${total}</button>`;
+    }
+    
+    // Next button
+    html += `<button onclick="loadBookings(${current + 1})" ${current === total ? 'disabled' : ''}>
+        <i class="fas fa-chevron-right"></i>
+    </button>`;
+    
+    pagination.innerHTML = html;
+}
+
+// View booking details
+async function viewBookingDetails(bookingId) {
+    try {
+        const response = await fetch(`${API_BASE}/bookings/${bookingId}`);
+        const booking = await response.json();
+        
+        currentBookingId = bookingId;
+        renderBookingModal(booking);
+        document.getElementById('bookingModal').classList.add('active');
+        
+    } catch (error) {
+        console.error('Error loading booking details:', error);
+        alert('Failed to load booking details');
+    }
+}
+
+// Render booking modal
+function renderBookingModal(booking) {
+    const modalBody = document.getElementById('modalBody');
+    
+    modalBody.innerHTML = `
+        <div style="display: grid; gap: 24px;">
+            <!-- Customer Info -->
+            <div>
+                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Customer Information</h4>
+                <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                    <div style="margin-bottom: 8px;"><strong>Name:</strong> ${booking.user?.name || 'N/A'}</div>
+                    <div style="margin-bottom: 8px;"><strong>Email:</strong> ${booking.user?.email || 'N/A'}</div>
+                    <div><strong>User ID:</strong> ${booking.user?.user_id || 'N/A'}</div>
+                </div>
+            </div>
+            
+            <!-- Flight Details -->
+            <div>
+                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Flight Details</h4>
+                <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                    <div style="margin-bottom: 8px;"><strong>PNR:</strong> ${booking.pnr}</div>
+                    <div style="margin-bottom: 8px;"><strong>Route:</strong> ${booking.flight.origin} → ${booking.flight.destination}</div>
+                    <div style="margin-bottom: 8px;"><strong>Departure:</strong> ${booking.flight.departure_date}</div>
+                    ${booking.flight.return_date ? `<div style="margin-bottom: 8px;"><strong>Return:</strong> ${booking.flight.return_date}</div>` : ''}
+                    <div style="margin-bottom: 8px;"><strong>Airline:</strong> ${booking.flight.airline}</div>
+                    ${booking.flight.flight_number ? `<div><strong>Flight Number:</strong> ${booking.flight.flight_number}</div>` : ''}
+                </div>
+            </div>
+            
+            <!-- Passengers -->
+            <div>
+                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Passengers</h4>
+                <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                    ${booking.passengers.length > 0 ? booking.passengers.map((p, i) => `
+                        <div style="${i > 0 ? 'margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);' : ''}">
+                            <strong>Passenger ${i + 1}:</strong> ${p.first_name || ''} ${p.last_name || ''} 
+                            ${p.email ? `<br><span class="text-muted">${p.email}</span>` : ''}
+                        </div>
+                    `).join('') : '<p class="text-muted">No passenger information</p>'}
+                </div>
+            </div>
+            
+            <!-- Pricing -->
+            <div>
+                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Fare Breakdown</h4>
+                <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                    <div style="margin-bottom: 8px;"><strong>Base Price:</strong> ${booking.pricing.currency} ${booking.pricing.base_price.toFixed(2)}</div>
+                    <div style="margin-bottom: 8px;"><strong>Taxes:</strong> ${booking.pricing.currency} ${booking.pricing.taxes.toFixed(2)}</div>
+                    <div style="padding-top: 8px; border-top: 2px solid var(--border-color);"><strong>Total Amount:</strong> <span style="font-size: 18px; color: var(--primary-color);">${booking.pricing.currency} ${booking.pricing.total_amount.toFixed(2)}</span></div>
+                </div>
+            </div>
+            
+            <!-- Payment Info -->
+            ${booking.payment ? `
+                <div>
+                    <h4 style="margin-bottom: 12px; color: var(--text-primary);">Payment Information</h4>
+                    <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                        <div style="margin-bottom: 8px;"><strong>Provider:</strong> ${booking.payment.provider}</div>
+                        <div style="margin-bottom: 8px;"><strong>Transaction ID:</strong> ${booking.payment.transaction_id || 'N/A'}</div>
+                        <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="badge badge-${getStatusClass(booking.payment.status)}">${booking.payment.status}</span></div>
+                        ${booking.payment.card_brand ? `<div><strong>Card:</strong> ${booking.payment.card_brand} •••• ${booking.payment.card_last4}</div>` : ''}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- API Logs -->
+            ${booking.api_logs.length > 0 ? `
+                <div>
+                    <h4 style="margin-bottom: 12px; color: var(--text-primary);">API Logs</h4>
+                    <div style="background: var(--content-bg); padding: 16px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+                        ${booking.api_logs.map(log => `
+                            <div style="margin-bottom: 8px; font-size: 13px;">
+                                <span class="badge badge-${log.status_code === 200 ? 'success' : 'danger'}">${log.log_type}</span>
+                                <span class="text-muted">${log.provider || 'Unknown'}</span> - ${log.created_at}
+                                ${log.error_message ? `<br><span class="text-danger">${log.error_message}</span>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Status & Dates -->
+            <div>
+                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Booking Status</h4>
+                <div style="background: var(--content-bg); padding: 16px; border-radius: 8px;">
+                    <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="badge badge-${getStatusClass(booking.status)}">${booking.status}</span></div>
+                    <div style="margin-bottom: 8px;"><strong>API Provider:</strong> ${booking.api_provider || 'N/A'}</div>
+                    ${booking.api_booking_reference ? `<div style="margin-bottom: 8px;"><strong>API Reference:</strong> ${booking.api_booking_reference}</div>` : ''}
+                    <div style="margin-bottom: 8px;"><strong>Created:</strong> ${booking.created_at}</div>
+                    <div><strong>Last Updated:</strong> ${booking.updated_at}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show/hide refund button based on status
+    const refundBtn = document.getElementById('refundBtn');
+    if (booking.status === 'confirmed' || booking.status === 'pending') {
+        refundBtn.style.display = 'inline-flex';
+    } else {
+        refundBtn.style.display = 'none';
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('bookingModal').classList.remove('active');
+    currentBookingId = null;
+}
+
+// Initiate refund
+async function initiateRefund() {
+    if (!currentBookingId) return;
+    
+    if (!confirm('Are you sure you want to process a full refund for this booking?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/bookings/${currentBookingId}/refund`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reason: 'Admin-initiated refund'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Refund processed successfully');
+            closeModal();
+            loadBookings(currentPage);
+        } else {
+            alert('Failed to process refund: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error processing refund:', error);
+        alert('Failed to process refund');
+    }
+}
+
+// Get badge class for status
+function getStatusClass(status) {
+    const statusMap = {
+        'pending': 'warning',
+        'confirmed': 'success',
+        'cancelled': 'danger',
+        'refunded': 'secondary',
+        'completed': 'success',
+        'failed': 'danger'
+    };
+    return statusMap[status] || 'secondary';
+}
+
+// Filter change event
+document.getElementById('statusFilter').addEventListener('change', () => loadBookings(1));
+
+// Load bookings on page load
+document.addEventListener('DOMContentLoaded', () => loadBookings());
+</script>
+{% endblock %}

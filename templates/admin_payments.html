@@ -1,0 +1,171 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Payments{% endblock %}
+{% block page_title %}Payment Transactions{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="content-card">
+    <div class="card-body">
+        <div class="filters">
+            <div class="filter-item">
+                <label>Status:</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="all">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+            </div>
+            
+            <div class="filter-item">
+                <button class="btn btn-secondary" onclick="loadPayments()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Table -->
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">All Payments</div>
+        <div class="card-actions">
+            <span id="paymentsCount" class="text-muted">Loading...</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="paymentsTable">
+                <thead>
+                    <tr>
+                        <th>Payment ID</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Provider</th>
+                        <th>Transaction ID</th>
+                        <th>Card</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-credit-card"></i>
+            <h3>No Payments Found</h3>
+            <p>Payment transactions will appear here</p>
+        </div>
+        
+        <div id="pagination" class="pagination"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+let currentPage = 1;
+
+async function loadPayments(page = 1) {
+    try {
+        const status = document.getElementById('statusFilter').value;
+        const response = await fetch(`${API_BASE}/payments?status=${status}&page=${page}`);
+        const data = await response.json();
+        
+        renderPaymentsTable(data.payments);
+        renderPagination(data.current_page, data.pages);
+        
+        document.getElementById('paymentsCount').textContent = `${data.total} total payments`;
+        currentPage = page;
+        
+    } catch (error) {
+        console.error('Error loading payments:', error);
+    }
+}
+
+function renderPaymentsTable(payments) {
+    const tbody = document.querySelector('#paymentsTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (payments.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#paymentsTable').style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    document.querySelector('#paymentsTable').style.display = 'table';
+    
+    tbody.innerHTML = payments.map(payment => `
+        <tr>
+            <td><strong>${payment.payment_id}</strong></td>
+            <td>
+                <div><strong>${payment.user_name}</strong></div>
+                <div class="text-muted" style="font-size: 12px;">${payment.user_email}</div>
+            </td>
+            <td><strong>${payment.currency} ${payment.amount.toFixed(2)}</strong></td>
+            <td>${payment.provider}</td>
+            <td class="text-muted" style="font-size: 12px;">${payment.transaction_id || 'N/A'}</td>
+            <td>${payment.card_brand ? `${payment.card_brand} •••• ${payment.card_last4}` : 'N/A'}</td>
+            <td><span class="badge badge-${getStatusClass(payment.status)}">${payment.status}</span></td>
+            <td class="text-muted">${payment.created_at}</td>
+            <td class="text-muted">${payment.completed_at || '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function renderPagination(current, total) {
+    const pagination = document.getElementById('pagination');
+    
+    if (total <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    html += `<button onclick="loadPayments(${current - 1})" ${current === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+    
+    const start = Math.max(1, current - 2);
+    const end = Math.min(total, current + 2);
+    
+    if (start > 1) {
+        html += `<button onclick="loadPayments(1)">1</button>`;
+        if (start > 2) html += `<span>...</span>`;
+    }
+    
+    for (let i = start; i <= end; i++) {
+        html += `<button onclick="loadPayments(${i})" class="${i === current ? 'active' : ''}">${i}</button>`;
+    }
+    
+    if (end < total) {
+        if (end < total - 1) html += `<span>...</span>`;
+        html += `<button onclick="loadPayments(${total})">${total}</button>`;
+    }
+    
+    html += `<button onclick="loadPayments(${current + 1})" ${current === total ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+    
+    pagination.innerHTML = html;
+}
+
+function getStatusClass(status) {
+    const statusMap = {
+        'pending': 'warning',
+        'completed': 'success',
+        'failed': 'danger',
+        'refunded': 'secondary'
+    };
+    return statusMap[status] || 'secondary';
+}
+
+document.getElementById('statusFilter').addEventListener('change', () => loadPayments(1));
+document.addEventListener('DOMContentLoaded', () => loadPayments());
+</script>
+{% endblock %}

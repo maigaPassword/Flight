@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard{% endblock %} - Skyela</title>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Admin Dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-plane"></i>
+                <span>Skyela Admin</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('admin.dashboard_page') }}" class="nav-item {% if request.endpoint == 'admin.dashboard_page' %}active{% endif %}">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="{{ url_for('admin.bookings_page') }}" class="nav-item {% if request.endpoint == 'admin.bookings_page' %}active{% endif %}">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Bookings</span>
+            </a>
+            
+            <a href="{{ url_for('admin.users_page') }}" class="nav-item {% if request.endpoint == 'admin.users_page' %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </a>
+            
+            <a href="{{ url_for('admin.payments_page') }}" class="nav-item {% if request.endpoint == 'admin.payments_page' %}active{% endif %}">
+                <i class="fas fa-credit-card"></i>
+                <span>Payments</span>
+            </a>
+            
+            <a href="{{ url_for('admin.refunds_page') }}" class="nav-item {% if request.endpoint == 'admin.refunds_page' %}active{% endif %}">
+                <i class="fas fa-undo"></i>
+                <span>Refunds</span>
+            </a>
+            
+            <a href="{{ url_for('admin.flight_api_page') }}" class="nav-item {% if request.endpoint == 'admin.flight_api_page' %}active{% endif %}">
+                <i class="fas fa-plug"></i>
+                <span>Flight API</span>
+            </a>
+            
+            <a href="{{ url_for('admin.logs_page') }}" class="nav-item {% if request.endpoint == 'admin.logs_page' %}active{% endif %}">
+                <i class="fas fa-file-alt"></i>
+                <span>Logs</span>
+            </a>
+            
+            <a href="{{ url_for('admin.settings_page') }}" class="nav-item {% if request.endpoint == 'admin.settings_page' %}active{% endif %}">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <a href="{{ url_for('home') }}" class="nav-item">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Site</span>
+            </a>
+        </div>
+    </aside>
+    
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+        <!-- Top Header Bar -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="header-item">
+                    <i class="fas fa-bell"></i>
+                </div>
+                
+                <div class="header-item user-menu">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Admin</span>
+                    <div class="dropdown">
+                        <a href="/logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <!-- Scripts -->
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobileMenuToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+        });
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('mobileMenuToggle');
+            
+            if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

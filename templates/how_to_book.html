@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}How to Book a Flight - Skyvela{% endblock %}
+{% block content %}
+<div class="min-h-screen" style="background-color: #f8fafc;">
+    <!-- Hero Section -->
+    <div class="py-12" style="background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">How to Book a Flight</h1>
+            <p class="text-xl text-white/90">Your step-by-step guide to booking with Skyvela</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-12 max-w-5xl">
+        <!-- Introduction -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <p class="text-lg text-gray-700 leading-relaxed">
+                Booking a flight with Skyvela is quick, easy, and secure. Follow these simple steps to find 
+                and book your perfect flight in just minutes.
+            </p>
+        </div>
+
+        <!-- Step-by-Step Guide -->
+        <div class="space-y-6">
+            <!-- Step 1 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">1</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Search for Flights</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• Go to the <strong>Search Flights</strong> page from the homepage</li>
+                            <li>• Enter your departure city/airport</li>
+                            <li>• Enter your destination city/airport</li>
+                            <li>• Select your departure date (and return date for round trips)</li>
+                            <li>• Choose the number of passengers</li>
+                            <li>• Select your preferred cabin class (Economy, Premium Economy, Business, First Class)</li>
+                            <li>• Click <strong>"Search Flights"</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">2</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Browse & Select Flights</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• Review the list of available flights</li>
+                            <li>• Compare prices, airlines, and flight times</li>
+                            <li>• Check flight details (duration, layovers, departure/arrival times)</li>
+                            <li>• Click <strong>"Select"</strong> on your preferred flight</li>
+                            <li>• For round trips, select your return flight as well</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">3</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Enter Passenger Information</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• Fill in passenger details for each traveler</li>
+                            <li>• Enter first name, last name, date of birth</li>
+                            <li>• Provide passport information (number, expiry date, issuing country)</li>
+                            <li>• Add contact details (email and phone number)</li>
+                            <li>• You can save passport info for future bookings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">4</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Select Your Seats</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• View the interactive seat map</li>
+                            <li>• Choose your preferred seats for each flight segment</li>
+                            <li>• See available seats in real-time</li>
+                            <li>• Extra legroom and premium seats may cost additional fees</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">5</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Payment & Confirmation</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• Review your booking summary and total price</li>
+                            <li>• Enter payment information (credit/debit card)</li>
+                            <li>• We accept Visa, Mastercard, American Express, and Discover</li>
+                            <li>• All payments are securely processed</li>
+                            <li>• Click <strong>"Complete Booking"</strong> to finalize</li>
+                            <li>• Receive instant confirmation via email with your booking reference</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                        <span class="text-2xl font-bold text-white">6</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-3" style="color: #0077b6;">Manage Your Booking</h3>
+                        <ul class="text-gray-700 space-y-2 leading-relaxed">
+                            <li>• Access <strong>"My Bookings"</strong> from your account</li>
+                            <li>• View all booking details and flight information</li>
+                            <li>• Download or print your e-tickets</li>
+                            <li>• Make changes if needed (fees may apply)</li>
+                            <li>• Check in online before your flight</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mt-8">
+            <h2 class="text-3xl font-bold mb-6" style="color: #0077b6;">Helpful Tips</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-bold mb-2" style="color: #0077b6;">📅 Book in Advance</h4>
+                    <p class="text-gray-700 text-sm">Book 2-3 months ahead for the best prices on international flights.</p>
+                </div>
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-bold mb-2" style="color: #0077b6;">💰 Use Budget Buy</h4>
+                    <p class="text-gray-700 text-sm">Set price alerts and let us notify you when fares drop.</p>
+                </div>
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-bold mb-2" style="color: #0077b6;">🔐 Save Your Info</h4>
+                    <p class="text-gray-700 text-sm">Save passport and payment details for faster future bookings.</p>
+                </div>
+                <div class="p-4 rounded-lg" style="background: #f0f9ff;">
+                    <h4 class="font-bold mb-2" style="color: #0077b6;">📧 Check Your Email</h4>
+                    <p class="text-gray-700 text-sm">Keep your confirmation email safe - you'll need it at the airport.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Support CTA -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mt-8 text-center">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Need Help?</h3>
+            <p class="text-gray-700 mb-6">Our customer support team is available 24/7 to assist you.</p>
+            <a href="{{ url_for('contact') }}" class="inline-block py-3 px-8 rounded-lg font-semibold text-white transition-all hover:shadow-lg" style="background: linear-gradient(135deg, #0077b6, #00b4d8);">
+                Contact Support
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

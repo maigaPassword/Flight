@@ -1,0 +1,129 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">Application Settings</div>
+    </div>
+    <div class="card-body">
+        <form id="settingsForm">
+            <h4 class="mb-3">General</h4>
+            <div class="form-group">
+                <label class="form-label">Application Name</label>
+                <input type="text" id="appName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Logo URL</label>
+                <input type="text" id="appLogo" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Default Currency</label>
+                <select id="currency" class="form-control">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Global Markup Percentage</label>
+                <input type="number" id="markup" class="form-control" step="0.1" min="0">
+            </div>
+            
+            <hr class="mt-3 mb-3">
+            <h4 class="mb-3">SMTP Settings</h4>
+            <div class="form-group">
+                <label class="form-label">SMTP Host</label>
+                <input type="text" id="smtpHost" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">SMTP Port</label>
+                <input type="number" id="smtpPort" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">SMTP Username</label>
+                <input type="text" id="smtpUsername" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">SMTP Password</label>
+                <input type="password" id="smtpPassword" class="form-control">
+            </div>
+            
+            <hr class="mt-3 mb-3">
+            <h4 class="mb-3">SMS Settings</h4>
+            <div class="form-group">
+                <label class="form-label">SMS Provider</label>
+                <input type="text" id="smsProvider" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">SMS API Key</label>
+                <input type="password" id="smsApiKey" class="form-control">
+            </div>
+            
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_BASE}/settings`);
+        const settings = await response.json();
+        
+        document.getElementById('appName').value = settings.app_name || '';
+        document.getElementById('appLogo').value = settings.app_logo || '';
+        document.getElementById('currency').value = settings.default_currency || 'USD';
+        document.getElementById('markup').value = settings.global_markup_percentage || 0;
+        document.getElementById('smtpHost').value = settings.smtp_host || '';
+        document.getElementById('smtpPort').value = settings.smtp_port || '';
+        document.getElementById('smtpUsername').value = settings.smtp_username || '';
+        document.getElementById('smsProvider').value = settings.sms_provider || '';
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+async function saveSettings() {
+    try {
+        const data = {
+            app_name: document.getElementById('appName').value,
+            app_logo: document.getElementById('appLogo').value,
+            default_currency: document.getElementById('currency').value,
+            global_markup_percentage: parseFloat(document.getElementById('markup').value),
+            smtp_host: document.getElementById('smtpHost').value,
+            smtp_port: parseInt(document.getElementById('smtpPort').value),
+            smtp_username: document.getElementById('smtpUsername').value,
+            smtp_password: document.getElementById('smtpPassword').value,
+            sms_provider: document.getElementById('smsProvider').value,
+            sms_api_key: document.getElementById('smsApiKey').value
+        };
+        
+        const response = await fetch(`${API_BASE}/settings`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            alert('Settings saved successfully');
+        }
+    } catch (error) {
+        alert('Failed to save settings');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}

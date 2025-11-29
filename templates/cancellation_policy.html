@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}Cancellation Policy - Skyvela{% endblock %}
+{% block content %}
+<div class="min-h-screen" style="background-color: #f8fafc;">
+    <!-- Hero Section -->
+    <div class="py-12" style="background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Cancellation Policy</h1>
+            <p class="text-xl text-white/90">Understand your options and rights</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-12 max-w-5xl">
+        <!-- Overview -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <h2 class="text-3xl font-bold mb-4" style="color: #0077b6;">Overview</h2>
+            <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                At Skyvela, we understand that plans can change. Our cancellation policy is designed to be 
+                fair and transparent. Please review the terms below to understand your options.
+            </p>
+            <div class="p-4 rounded-lg" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                <p class="text-gray-800">
+                    <strong>Important:</strong> Cancellation policies may vary by airline, fare type, and route. 
+                    Always check your specific booking terms before purchasing.
+                </p>
+            </div>
+        </div>
+
+        <!-- 24-Hour Free Cancellation -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #48cae4, #90e0ef);">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold mb-2" style="color: #0077b6;">24-Hour Risk-Free Cancellation</h3>
+                    <p class="text-gray-700 leading-relaxed">
+                        Most bookings made on Skyvela can be cancelled within <strong>24 hours of purchase</strong> 
+                        for a full refund, provided the booking was made at least 7 days before departure.
+                    </p>
+                </div>
+            </div>
+            <ul class="text-gray-700 space-y-2 ml-16">
+                <li>• Full refund to original payment method</li>
+                <li>• No cancellation fees</li>
+                <li>• Applies to most fare types</li>
+                <li>• Must be within 24 hours of booking confirmation</li>
+            </ul>
+        </div>
+
+        <!-- Standard Cancellations -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Standard Cancellation Terms</h3>
+            
+            <div class="space-y-6">
+                <!-- Refundable Tickets -->
+                <div class="p-6 rounded-lg" style="background: #e0f2fe; border-left: 4px solid #0077b6;">
+                    <h4 class="font-bold text-lg mb-3" style="color: #03045e;">✓ Refundable Tickets</h4>
+                    <ul class="text-gray-700 space-y-2">
+                        <li>• Can be cancelled anytime before departure</li>
+                        <li>• Refund amount depends on airline policy</li>
+                        <li>• May incur airline cancellation fees ($100-$500)</li>
+                        <li>• Refund processed within 7-20 business days</li>
+                        <li>• Original payment method will be credited</li>
+                    </ul>
+                </div>
+
+                <!-- Non-Refundable Tickets -->
+                <div class="p-6 rounded-lg" style="background: #fee2e2; border-left: 4px solid #dc2626;">
+                    <h4 class="font-bold text-lg mb-3" style="color: #7f1d1d;">✗ Non-Refundable Tickets</h4>
+                    <ul class="text-gray-700 space-y-2">
+                        <li>• Generally cannot be cancelled for a refund</li>
+                        <li>• May be eligible for travel credit/voucher (minus fees)</li>
+                        <li>• Change fees typically apply ($200-$750 per ticket)</li>
+                        <li>• Fare difference must be paid for rebooking</li>
+                        <li>• Travel credit usually valid for 12 months</li>
+                    </ul>
+                </div>
+
+                <!-- Basic Economy -->
+                <div class="p-6 rounded-lg" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                    <h4 class="font-bold text-lg mb-3" style="color: #78350f;">⚠ Basic Economy Fares</h4>
+                    <ul class="text-gray-700 space-y-2">
+                        <li>• Most restrictive fare type</li>
+                        <li>• Usually non-refundable and non-changeable</li>
+                        <li>• No refund or credit available after 24-hour window</li>
+                        <li>• Check specific airline policy before booking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- How to Cancel -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">How to Cancel Your Booking</h3>
+            <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">1.</span>
+                    <p class="text-gray-700">Log in to your Skyvela account</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">2.</span>
+                    <p class="text-gray-700">Go to <strong>"My Bookings"</strong></p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">3.</span>
+                    <p class="text-gray-700">Select the booking you want to cancel</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">4.</span>
+                    <p class="text-gray-700">Click <strong>"Cancel Booking"</strong> and follow the prompts</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">5.</span>
+                    <p class="text-gray-700">Review cancellation fees and refund amount</p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="font-bold text-lg" style="color: #0077b6;">6.</span>
+                    <p class="text-gray-700">Confirm cancellation and receive confirmation email</p>
+                </div>
+            </div>
+
+            <div class="mt-6 p-4 rounded-lg" style="background: #f0f9ff;">
+                <p class="text-gray-700">
+                    <strong>Need help?</strong> Contact our 24/7 customer support at 
+                    <a href="mailto:support@skyvela.com" style="color: #0077b6;">support@skyvela.com</a> 
+                    or call +1 (555) 123-4567
+                </p>
+            </div>
+        </div>
+
+        <!-- Special Circumstances -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Special Circumstances</h3>
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Medical Emergencies</h4>
+                    <p class="text-gray-700">With proper documentation (doctor's note), some airlines may waive cancellation fees or offer full refunds.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Flight Cancellations by Airline</h4>
+                    <p class="text-gray-700">If the airline cancels your flight, you are entitled to a full refund regardless of fare type.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Travel Insurance</h4>
+                    <p class="text-gray-700">Consider purchasing travel insurance for maximum flexibility and protection against unforeseen events.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Natural Disasters or Pandemics</h4>
+                    <p class="text-gray-700">Airlines may offer waivers during extraordinary circumstances. Check with the specific airline.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Important Notes -->
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Important Notes</h3>
+            <ul class="text-gray-700 space-y-3">
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-1" style="color: #0077b6;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Refund processing times vary by airline and payment method (typically 7-20 business days)</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-1" style="color: #0077b6;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Cancellation policies are subject to change based on airline terms and conditions</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-1" style="color: #0077b6;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Always review your booking confirmation email for specific cancellation terms</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-1" style="color: #0077b6;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Group bookings (10+ passengers) may have different cancellation terms</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

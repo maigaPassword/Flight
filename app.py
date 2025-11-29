@@ -33,6 +33,8 @@ from models import (
     Search,
     UserCardInformation,
     Passport,
+    Booking,
+    Payment,
     seed_airlines_airports,
 )
 
@@ -132,6 +134,12 @@ try:
             pass
 except Exception:
     pass
+
+# =========================
+# Register Admin Blueprint
+# =========================
+from admin_routes import admin_bp
+app.register_blueprint(admin_bp)
 
 # =========================
 # Load Airlines Data
@@ -1200,9 +1208,66 @@ def confirmation():
                 Ticket_bought=True,
             )
             db.session.add(ticket)
+            
+            # NEW: Save to Booking model for admin dashboard
+            user_id = session.get('user_id')  # Get logged-in user if available
+            
+            # Create Payment record
+            payment = Payment(
+                user_id=user_id,
+                amount=float(total_price or 0.0),
+                currency='USD',
+                status='completed',
+                provider='stripe',
+                transaction_id=payment_intent_id or f'manual_{booking_ref}',
+                payment_method_id=None,  # Could be enhanced to store saved card token
+                card_last4=None,  # Could be enhanced if card info available
+                card_brand=None,
+                completed_at=datetime.utcnow()
+            )
+            db.session.add(payment)
+            db.session.flush()  # Get payment_id
+            
+            # Prepare passengers JSON
+            passengers_data = passenger_details if passenger_details else [{
+                'name': passenger_name,
+                'email': email,
+                'phone': phone
+            }]
+            
+            # Calculate base price and taxes (simplified - 85% base, 15% taxes)
+            total = float(total_price or 0.0)
+            base = total * 0.85
+            taxes = total * 0.15
+            
+            # Create Booking record
+            booking = Booking(
+                user_id=user_id,
+                pnr=booking_ref,
+                origin=outbound.get('origin', '') if outbound else '',
+                destination=outbound.get('destination', '') if outbound else '',
+                departure_date=dep_time.date() if dep_time else None,
+                return_date=parse_dt(return_flight.get('departure')).date() if return_flight and return_flight.get('departure') else None,
+                airline=outbound.get('airline', '') if outbound else '',
+                flight_number=outbound.get('flight', '') if outbound else '',
+                passengers_json=json.dumps(passengers_data),
+                base_price=base,
+                taxes=taxes,
+                total_amount=total,
+                currency='USD',
+                status='confirmed',
+                api_provider='amadeus',
+                api_booking_reference=None,
+                payment_id=payment.payment_id
+            )
+            db.session.add(booking)
+            
             db.session.commit()
+            print(f"✅ Booking saved: {booking_ref} - ${total_price}")
     except Exception as e:
         print(f"⚠️ Could not save ticket/flight: {e}")
+        import traceback
+        traceback.print_exc()
 
     return render_template(
         'confirmation.html',
@@ -1898,27 +1963,38 @@ def get_delay_prediction():
 # =========================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page backed by the User table."""
+    """Login page backed by the User table. Supports both username and email."""
     if request.method == 'POST':
-        username = (request.form.get('username') or '').strip()
+        # Accept both 'username' (from regular login) and 'email' (from admin login)
+        username = (request.form.get('username') or request.form.get('email') or '').strip()
         password = (request.form.get('password') or '').strip()
 
         if not username or not password:
-            flash('Please enter both username and password.', 'error')
+            flash('Please enter both username/email and password.', 'error')
             return render_template('login.html')
 
         try:
-            # Allow login by username (User.name); could be extended to email if needed
+            # Try to find user by name first, then by email
             user = User.query.filter_by(name=username).first()
+            if not user:
+                user = User.query.filter_by(email=username).first()
+            
             if not user or not check_password_hash(user.password_hash, password):
-                flash('Invalid username or password.', 'error')
+                flash('Invalid credentials. Please try again.', 'error')
                 return render_template('login.html')
 
             # Set session
             session['user_id'] = user.user_id
             session['user_name'] = user.name
-            flash(f'Welcome back, {user.name}!', 'success')
-            return redirect(url_for('user_portal'))
+            
+            # Redirect based on admin status
+            if user.is_admin:
+                flash(f'Welcome back, {user.name}!', 'success')
+                return redirect(url_for('admin.dashboard_page'))
+            else:
+                flash(f'Welcome back, {user.name}!', 'success')
+                return redirect(url_for('user_portal'))
+                
         except Exception as e:
             print(f"❌ Login error: {e}")
             flash('Could not log you in right now. Please try again.', 'error')
@@ -1929,14 +2005,27 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """Log out the current user and redirect to login page."""
+    """Log out the current user and redirect to appropriate login page."""
+    was_admin = False
     try:
+        user_id = session.get('user_id')
+        if user_id:
+            user = User.query.get(user_id)
+            if user and user.is_admin:
+                was_admin = True
+        
         session.pop('user_id', None)
         session.pop('user_name', None)
     except Exception:
         pass
+    
     flash('You have been logged out.', 'success')
-    return redirect(url_for('login'))
+    
+    # Redirect admins to admin login, regular users to regular login
+    if was_admin:
+        return redirect(url_for('admin.login_page'))
+    else:
+        return redirect(url_for('login'))
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -1988,6 +2077,27 @@ def contact():
     return render_template('contact.html')
 
 
+# Help & Info Pages
+@app.route('/help/how-to-book')
+def how_to_book():
+    return render_template('how_to_book.html')
+
+
+@app.route('/help/cancellation-policy')
+def cancellation_policy():
+    return render_template('cancellation_policy.html')
+
+
+@app.route('/help/payment-methods')
+def payment_methods():
+    return render_template('payment_methods.html')
+
+
+@app.route('/help/budget-buy')
+def budget_buy_help():
+    return render_template('budget_buy_help.html')
+
+
 # =========================
 # User Portal (Profile & Passport Management)
 # =========================
@@ -1995,8 +2105,8 @@ def contact():
 def user_portal():
     """Authenticated user portal.
 
-    GET: Show user profile (name/email) and list of passports with edit/delete actions.
-    POST: Create a new passport, update existing, or delete.
+    GET: Show user profile (name/email), passports, and payment methods.
+    POST: Create/update/delete passport or payment method.
     """
     if not session.get('user_id'):
         flash('Please log in to access your portal.', 'error')
@@ -2009,10 +2119,88 @@ def user_portal():
 
     action = (request.form.get('action') or '').lower()
     passport_id = request.form.get('passport_id')
+    card_id = request.form.get('card_id')
     editing_passport = None
 
     if request.method == 'POST':
-        if action == 'delete' and passport_id:
+        # Handle card actions
+        if action == 'delete_card' and card_id:
+            try:
+                card = UserCardInformation.query.filter_by(User_card_id=card_id, user_id=user.user_id).first()
+                if card:
+                    db.session.delete(card)
+                    db.session.commit()
+                    flash('Payment method deleted.', 'success')
+                else:
+                    flash('Payment method not found.', 'error')
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Card delete error: {e}")
+                flash('Could not delete payment method.', 'error')
+            return redirect(url_for('user_portal'))
+        
+        elif action == 'save_card':
+            card_number = (request.form.get('card_number') or '').strip().replace(' ', '')
+            exp_month = request.form.get('exp_month', '').strip()
+            exp_year = request.form.get('exp_year', '').strip()
+            cvv = request.form.get('card_cvv', '').strip()
+            
+            if not card_number or not exp_month or not exp_year or not cvv:
+                flash('All card fields are required.', 'error')
+            elif len(cvv) < 3 or len(cvv) > 4:
+                flash('CVV must be 3 or 4 digits.', 'error')
+            else:
+                try:
+                    # TODO: In production, use Stripe.js to create PaymentMethod on client-side
+                    # This prevents card data from ever touching your server
+                    # For now, we simulate the tokenization process
+                    
+                    # Detect card brand
+                    brand = 'Unknown'
+                    if card_number.startswith('4'):
+                        brand = 'Visa'
+                    elif card_number.startswith(('5', '2')):
+                        brand = 'Mastercard'
+                    elif card_number.startswith('3'):
+                        brand = 'American Express'
+                    
+                    # PRODUCTION: Use Stripe API to create PaymentMethod
+                    # payment_method = stripe.PaymentMethod.create(
+                    #     type='card',
+                    #     card={
+                    #         'number': card_number,
+                    #         'exp_month': int(exp_month),
+                    #         'exp_year': int(exp_year),
+                    #         'cvc': cvv
+                    #     }
+                    # )
+                    # Store: payment_method.id, payment_method.card.last4, payment_method.card.brand
+                    
+                    # DEVELOPMENT: Simulate tokenization
+                    last4 = card_number[-4:]
+                    simulated_token = f"pm_test_{card_number[:6]}_{last4}"
+                    
+                    # Store ONLY the token and safe card metadata
+                    # NEVER store: full card number, CVV
+                    new_card = UserCardInformation(
+                        user_id=user.user_id,
+                        last4=last4,
+                        brand=brand,
+                        exp_month=int(exp_month),
+                        exp_year=int(exp_year),
+                        payment_method_id=simulated_token  # This is the TOKEN (not card data)
+                    )
+                    db.session.add(new_card)
+                    db.session.commit()
+                    flash('Payment method tokenized and saved. CVV was sent to processor but not stored.', 'success')
+                    return redirect(url_for('user_portal'))
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"❌ Card save error: {e}")
+                    flash('Could not save payment method.', 'error')
+        
+        # Handle passport actions
+        elif action == 'delete' and passport_id:
             try:
                 p = Passport.query.filter_by(Passport_id=passport_id, user_id=user.user_id).first()
                 if p:
@@ -2071,11 +2259,617 @@ def user_portal():
             editing_passport = Passport.query.filter_by(Passport_id=edit_id, user_id=user.user_id).first()
 
     passports = Passport.query.filter_by(user_id=user.user_id).order_by(Passport.created_at.desc()).all()
-    return render_template('user_portal.html', user=user, passports=passports, editing_passport=editing_passport)
+    cards = UserCardInformation.query.filter_by(user_id=user.user_id).order_by(UserCardInformation.created_at.desc()).all()
+    return render_template('user_portal.html', user=user, passports=passports, cards=cards, editing_passport=editing_passport)
 
 @app.route('/user_portal')
 def user_portal_redirect():  # compatibility alias
     return redirect(url_for('user_portal'))
+
+
+# =========================
+# Budget Buy Feature Routes
+# =========================
+@app.route('/budget-buy', methods=['GET', 'POST'])
+def budget_buy():
+    """
+    Budget Buy page: Auto-book or price alerts when flights match budget.
+    
+    GET: Display form and active requests
+    POST: Create new budget tracking request
+    """
+    if not session.get('user_id'):
+        flash('Please log in to use Budget Buy.', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session.get('user_id')
+    
+    if request.method == 'POST':
+        try:
+            # Extract form data
+            origin = (request.form.get('origin') or '').upper().strip()
+            destination = (request.form.get('destination') or '').upper().strip()
+            departure_date_str = request.form.get('departure_date', '').strip()
+            return_date_str = request.form.get('return_date', '').strip()
+            trip_duration_weeks = request.form.get('trip_duration_weeks', '').strip()
+            
+            # Preferences
+            non_stop_only = request.form.get('non_stop_only') == 'on'
+            max_stops = request.form.get('max_stops', '').strip()
+            preferred_time = request.form.get('preferred_time', '').strip()
+            preferred_airline = (request.form.get('preferred_airline') or '').upper().strip()
+            
+            # Budget range
+            min_budget = float(request.form.get('min_budget', 0))
+            max_budget = float(request.form.get('max_budget', 0))
+            
+            # Mode
+            mode = request.form.get('mode', 'alert_only')
+            
+            # Validate
+            if not origin or not destination:
+                return jsonify({'success': False, 'message': 'Origin and destination are required'}), 400
+            
+            if min_budget >= max_budget:
+                return jsonify({'success': False, 'message': 'Maximum budget must be greater than minimum'}), 400
+            
+            # Parse dates
+            departure_date = None
+            return_date = None
+            try:
+                if departure_date_str:
+                    departure_date = datetime.strptime(departure_date_str, '%Y-%m-%d')
+            except Exception:
+                pass
+            
+            try:
+                if return_date_str:
+                    return_date = datetime.strptime(return_date_str, '%Y-%m-%d')
+            except Exception:
+                pass
+            
+            # Parse optional integers
+            trip_duration = int(trip_duration_weeks) if trip_duration_weeks else None
+            max_stops_int = int(max_stops) if max_stops else None
+            
+            # Create budget request
+            from models import BudgetBuyRequest
+            budget_request = BudgetBuyRequest(
+                user_id=user_id,
+                origin=origin,
+                destination=destination,
+                departure_date=departure_date,
+                return_date=return_date,
+                trip_duration_weeks=trip_duration,
+                non_stop_only=non_stop_only,
+                max_stops=max_stops_int,
+                preferred_time=preferred_time or None,
+                preferred_airline=preferred_airline or None,
+                min_budget=min_budget,
+                max_budget=max_budget,
+                currency='USD',
+                mode=mode,
+                status='pending'
+            )
+            
+            db.session.add(budget_request)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Budget tracking request created successfully!',
+                'request_id': budget_request.request_id
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Budget Buy error: {e}")
+            return jsonify({'success': False, 'message': 'Failed to create request'}), 500
+    
+    # GET: Display form and active requests
+    try:
+        from models import BudgetBuyRequest
+        # Only show active requests (exclude cancelled)
+        requests = BudgetBuyRequest.query.filter(
+            BudgetBuyRequest.user_id == user_id,
+            BudgetBuyRequest.status != 'cancelled'
+        ).order_by(
+            BudgetBuyRequest.created_at.desc()
+        ).all()
+        
+        return render_template('budget_buy.html', requests=requests, AIRPORTS=AIRPORTS)
+    except Exception as e:
+        print(f"❌ Budget Buy page error: {e}")
+        return render_template('budget_buy.html', requests=[], AIRPORTS=AIRPORTS)
+
+
+@app.route('/active-requests')
+def active_requests():
+    """
+    Active Requests page: View all ACTIVE budget tracking requests.
+    Filters out cancelled requests.
+    """
+    if not session.get('user_id'):
+        flash('Please log in to view your active requests.', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        from models import BudgetBuyRequest
+        user_id = session.get('user_id')
+        # Only show active requests (exclude cancelled)
+        requests = BudgetBuyRequest.query.filter(
+            BudgetBuyRequest.user_id == user_id,
+            BudgetBuyRequest.status != 'cancelled'
+        ).order_by(
+            BudgetBuyRequest.created_at.desc()
+        ).all()
+        
+        return render_template('active_requests.html', requests=requests)
+    except Exception as e:
+        print(f"❌ Active Requests page error: {e}")
+        return render_template('active_requests.html', requests=[])
+
+
+@app.route('/my-bookings')
+def my_bookings():
+    """
+    My Bookings page: View ALL booked tickets from any source.
+    Shows tickets from manual bookings, Budget Buy auto-bookings, etc.
+    Filters out:
+    - Cancelled Budget Buy bookings
+    - Flights that have already departed
+    """
+    if not session.get('user_id'):
+        flash('Please log in to view your bookings.', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        from models import Ticket, Flight, Search, BudgetBuyRequest
+        from datetime import datetime
+        user_id = session.get('user_id')
+        current_time = datetime.now()
+        
+        # Get all tickets bought by this user
+        # Join with Flight and Search to get full details
+        tickets = db.session.query(Ticket, Flight, Search).join(
+            Flight, Ticket.flight_id == Flight.flight_id
+        ).outerjoin(
+            Search, Ticket.search_id == Search.search_id
+        ).filter(
+            (Search.user_id == user_id) | (Ticket.Ticket_bought == True)
+        ).order_by(
+            Ticket.scraped_at.desc()
+        ).all()
+        
+        # Get Budget Buy bookings - ONLY booked status (exclude cancelled, failed, etc.)
+        budget_bookings = BudgetBuyRequest.query.filter_by(
+            user_id=user_id,
+            status='booked'
+        ).all()
+        
+        # Build comprehensive booking list
+        all_bookings = []
+        
+        # Add regular tickets (filter out past flights)
+        for ticket, flight, search in tickets:
+            if ticket.Ticket_bought:
+                # Check if flight has already departed
+                if flight.departure_time and flight.departure_time < current_time:
+                    continue  # Skip past flights
+                
+                all_bookings.append({
+                    'type': 'manual' if search else 'unknown',
+                    'ticket': ticket,
+                    'flight': flight,
+                    'search': search,
+                    'booking_date': ticket.scraped_at,
+                    'confirmation': f"TKT{ticket.ticket_id:06d}"
+                })
+        
+        # Add Budget Buy bookings (filter out past flights)
+        for req in budget_bookings:
+            if req.booked_ticket_id:
+                ticket = Ticket.query.get(req.booked_ticket_id)
+                if ticket:
+                    flight = Flight.query.get(ticket.flight_id)
+                    
+                    # Check if flight has already departed
+                    if flight and flight.departure_time and flight.departure_time < current_time:
+                        continue  # Skip past flights
+                    
+                    all_bookings.append({
+                        'type': 'budget_buy',
+                        'ticket': ticket,
+                        'flight': flight,
+                        'search': None,
+                        'budget_request': req,
+                        'booking_date': req.completed_at or ticket.scraped_at,
+                        'confirmation': req.booking_confirmation or f"BB{req.request_id:06d}"
+                    })
+        
+        # Sort by booking date (newest first)
+        all_bookings.sort(key=lambda x: x['booking_date'], reverse=True)
+        
+        # Count active Budget Buy requests (still monitoring)
+        active_budget_requests = BudgetBuyRequest.query.filter(
+            BudgetBuyRequest.user_id == user_id,
+            BudgetBuyRequest.status.in_(['pending', 'searching', 'price_found', 'alert_sent'])
+        ).count()
+        
+        return render_template('my_bookings.html', 
+                             bookings=all_bookings,
+                             active_budget_requests=active_budget_requests)
+    except Exception as e:
+        print(f"❌ My Bookings page error: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template('my_bookings.html', bookings=[])
+
+
+@app.route('/budget-buy/status')
+def budget_buy_status():
+    """
+    API endpoint to get status of all budget requests for current user.
+    Used for real-time status updates.
+    """
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        from models import BudgetBuyRequest
+        user_id = session.get('user_id')
+        requests = BudgetBuyRequest.query.filter_by(user_id=user_id).order_by(
+            BudgetBuyRequest.created_at.desc()
+        ).all()
+        
+        requests_data = []
+        for req in requests:
+            requests_data.append({
+                'request_id': req.request_id,
+                'origin': req.origin,
+                'destination': req.destination,
+                'status': req.status,
+                'mode': req.mode,
+                'min_budget': req.min_budget,
+                'max_budget': req.max_budget,
+                'last_checked_at': req.last_checked_at.isoformat() if req.last_checked_at else None
+            })
+        
+        return jsonify({'success': True, 'requests': requests_data})
+    except Exception as e:
+        print(f"❌ Status fetch error: {e}")
+        return jsonify({'error': 'Failed to fetch status'}), 500
+
+
+@app.route('/budget-buy/cancel/<int:request_id>', methods=['POST'])
+def cancel_budget_request(request_id):
+    """
+    Cancel a budget tracking request.
+    """
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        from models import BudgetBuyRequest
+        user_id = session.get('user_id')
+        
+        budget_request = BudgetBuyRequest.query.filter_by(
+            request_id=request_id,
+            user_id=user_id
+        ).first()
+        
+        if not budget_request:
+            return jsonify({'success': False, 'message': 'Request not found'}), 404
+        
+        if budget_request.status in ['booked', 'cancelled']:
+            return jsonify({'success': False, 'message': 'Cannot cancel this request'}), 400
+        
+        budget_request.status = 'cancelled'
+        budget_request.completed_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Request cancelled successfully'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Cancel error: {e}")
+
+
+@app.route('/budget-buy/check-now/<int:request_id>', methods=['POST'])
+def check_budget_request_now(request_id):
+    """
+    Manually trigger price check and auto-book for a budget request.
+    """
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        from models import BudgetBuyRequest, Passport
+        user_id = session.get('user_id')
+        
+        budget_request = BudgetBuyRequest.query.filter_by(
+            request_id=request_id,
+            user_id=user_id
+        ).first()
+        
+        if not budget_request:
+            return jsonify({'success': False, 'message': 'Request not found'}), 404
+        
+        if budget_request.status in ['booked', 'cancelled']:
+            return jsonify({'success': False, 'message': 'Cannot check this request'}), 400
+        
+        # Check for passport if auto-book mode
+        passport = None
+        if budget_request.mode == 'auto_book':
+            passport = Passport.query.filter_by(user_id=user_id).first()
+            if not passport:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Passport information required for auto-booking. Please add your passport details first.',
+                    'needs_passport': True
+                }), 400
+        
+        # Search for flights
+        try:
+            date_str = budget_request.departure_date.strftime('%Y-%m-%d') if budget_request.departure_date else (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+            
+            response = amadeus.shopping.flight_offers_search.get(
+                originLocationCode=budget_request.origin,
+                destinationLocationCode=budget_request.destination,
+                departureDate=date_str,
+                adults=1,
+                max=10
+            )
+            
+            if not hasattr(response, 'data') or not response.data:
+                budget_request.last_checked_at = datetime.utcnow()
+                db.session.commit()
+                return jsonify({
+                    'success': False,
+                    'message': 'No flights found for this route'
+                })
+            
+            # Find lowest price and best offer
+            lowest_price = None
+            best_offer = None
+            for offer in response.data:
+                try:
+                    price = float(offer.get('price', {}).get('total', 0))
+                    if price > 0 and (lowest_price is None or price < lowest_price):
+                        lowest_price = price
+                        best_offer = offer
+                except Exception:
+                    continue
+            
+            if lowest_price is None:
+                budget_request.last_checked_at = datetime.utcnow()
+                db.session.commit()
+                return jsonify({
+                    'success': False,
+                    'message': 'Could not find pricing information'
+                })
+            
+            # Update last checked
+            budget_request.last_checked_at = datetime.utcnow()
+            
+            # Check if in budget
+            in_budget = budget_request.min_budget <= lowest_price <= budget_request.max_budget
+            
+            if in_budget and budget_request.mode == 'auto_book':
+                # AUTO-BOOK THE FLIGHT!
+                try:
+                    # Extract flight details from offer
+                    itinerary = best_offer.get('itineraries', [{}])[0]
+                    segments = itinerary.get('segments', [{}])
+                    first_segment = segments[0] if segments else {}
+                    
+                    # Parse departure time
+                    dep_time_str = first_segment.get('departure', {}).get('at', '')
+                    arr_time_str = first_segment.get('arrival', {}).get('at', '')
+                    
+                    try:
+                        dep_time = datetime.fromisoformat(dep_time_str.replace('Z', '+00:00')) if dep_time_str else None
+                        arr_time = datetime.fromisoformat(arr_time_str.replace('Z', '+00:00')) if arr_time_str else None
+                    except:
+                        dep_time = None
+                        arr_time = None
+                    
+                    # Create Flight record
+                    flight = Flight(
+                        flight_number=first_segment.get('carrierCode', '') + first_segment.get('number', ''),
+                        departure_airport=budget_request.origin,
+                        arrival_airport=budget_request.destination,
+                        departure_time=dep_time,
+                        arrival_time=arr_time,
+                        duration=None
+                    )
+                    db.session.add(flight)
+                    db.session.flush()
+                    
+                    # Create Ticket record (old model for compatibility)
+                    ticket = Ticket(
+                        flight_id=flight.flight_id,
+                        search_id=None,
+                        price=lowest_price,
+                        currency='USD',
+                        fare_class='ECONOMY',
+                        Ticket_bought=True
+                    )
+                    db.session.add(ticket)
+                    db.session.flush()
+                    
+                    # Create Payment record for admin dashboard
+                    payment = Payment(
+                        user_id=user_id,
+                        amount=lowest_price,
+                        currency='USD',
+                        status='completed',
+                        provider='budget_buy',
+                        transaction_id=f'BB{request_id:06d}',
+                        payment_method_id=None,
+                        card_last4=None,
+                        card_brand=None,
+                        completed_at=datetime.utcnow()
+                    )
+                    db.session.add(payment)
+                    db.session.flush()
+                    
+                    # Get user info for passenger details
+                    user = User.query.get(user_id)
+                    passengers_data = [{
+                        'name': f"{passport.first_name} {passport.last_name}" if passport else user.name,
+                        'passport': passport.passport_number if passport else None,
+                        'type': 'adult'
+                    }]
+                    
+                    # Calculate base price and taxes
+                    base = lowest_price * 0.85
+                    taxes = lowest_price * 0.15
+                    
+                    # Generate PNR
+                    import random, string
+                    pnr = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                    
+                    # Create Booking record for admin dashboard
+                    booking = Booking(
+                        user_id=user_id,
+                        pnr=pnr,
+                        origin=budget_request.origin,
+                        destination=budget_request.destination,
+                        departure_date=dep_time.date() if dep_time else budget_request.departure_date,
+                        return_date=budget_request.return_date,
+                        airline=first_segment.get('carrierCode', 'Unknown'),
+                        flight_number=first_segment.get('carrierCode', '') + first_segment.get('number', ''),
+                        passengers_json=json.dumps(passengers_data),
+                        base_price=base,
+                        taxes=taxes,
+                        total_amount=lowest_price,
+                        currency='USD',
+                        status='confirmed',
+                        api_provider='amadeus_budget_buy',
+                        api_booking_reference=f'BB{request_id:06d}',
+                        payment_id=payment.payment_id
+                    )
+                    db.session.add(booking)
+                    db.session.flush()
+                    
+                    # Update budget request
+                    budget_request.status = 'booked'
+                    budget_request.booked_ticket_id = ticket.ticket_id
+                    budget_request.booked_price = lowest_price
+                    budget_request.booking_confirmation = pnr
+                    budget_request.completed_at = datetime.utcnow()
+                    
+                    db.session.commit()
+                    
+                    print(f"✅ Auto-booked flight for request {request_id} - PNR: {pnr}, Price: ${lowest_price}")
+                    
+                    return jsonify({
+                        'success': True,
+                        'booked': True,
+                        'price': lowest_price,
+                        'pnr': pnr,
+                        'message': f'🎉 Flight booked successfully!\nPNR: {pnr}\nPrice: ${lowest_price:.2f}\nSaved: ${budget_request.max_budget - lowest_price:.2f}'
+                    })
+                    
+                except Exception as book_error:
+                    db.session.rollback()
+                    print(f"❌ Booking error: {book_error}")
+                    import traceback
+                    traceback.print_exc()
+                    return jsonify({
+                        'success': False,
+                        'message': f'Price found (${lowest_price:.2f}) but booking failed: {str(book_error)}'
+                    }), 500
+            else:
+                # Price not in budget or alert-only mode
+                db.session.commit()
+                return jsonify({
+                    'success': True,
+                    'booked': False,
+                    'price': lowest_price,
+                    'in_budget': in_budget,
+                    'min_budget': budget_request.min_budget,
+                    'max_budget': budget_request.max_budget,
+                    'message': f'Found flights from ${lowest_price:.2f}. ' + 
+                              ('✅ Price is within your budget!' if in_budget else '⏳ Price not in budget yet.')
+                })
+            
+        except ResponseError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Flight search error: {str(e)}'
+            }), 500
+            
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Check now error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }), 500
+        return jsonify({'success': False, 'message': 'Failed to cancel request'}), 500
+
+
+@app.route('/api/check-passport')
+def check_passport():
+    """
+    Check if user has passport information saved.
+    """
+    if not session.get('user_id'):
+        return jsonify({'has_passport': False})
+    
+    try:
+        user_id = session.get('user_id')
+        passport = Passport.query.filter_by(user_id=user_id).first()
+        return jsonify({'has_passport': passport is not None})
+    except Exception:
+        return jsonify({'has_passport': False})
+
+
+@app.route('/api/save-passport', methods=['POST'])
+def save_passport():
+    """
+    Save passport information for auto-booking.
+    """
+    if not session.get('user_id'):
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    
+    try:
+        user_id = session.get('user_id')
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        passport_number = request.form.get('passport_number', '').strip()
+        
+        if not first_name or not last_name or not passport_number:
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+        
+        # Check if passport already exists
+        passport = Passport.query.filter_by(user_id=user_id).first()
+        
+        if passport:
+            # Update existing
+            passport.First_name = first_name
+            passport.last_name = last_name
+            passport.passport_number = passport_number
+        else:
+            # Create new
+            passport = Passport(
+                user_id=user_id,
+                First_name=first_name,
+                last_name=last_name,
+                passport_number=passport_number
+            )
+            db.session.add(passport)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Passport information saved'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Passport save error: {e}")
+        return jsonify({'success': False, 'message': 'Failed to save passport'}), 500
+
 
 # =========================
 # Flask CLI: init-db
@@ -2099,6 +2893,25 @@ def clean_legacy_command():
             print('Dropped legacy tables (users, bookings).')
         except Exception as e:
             print(f"Could not drop legacy tables: {e}")
+
+# =========================
+# Context Processor - Active Requests Count
+# =========================
+@app.context_processor
+def inject_active_requests():
+    """Inject active request count into all templates."""
+    active_requests = 0
+    if session.get('user_id'):
+        try:
+            from models import BudgetBuyRequest
+            active_requests = BudgetBuyRequest.query.filter_by(
+                user_id=session.get('user_id')
+            ).filter(
+                BudgetBuyRequest.status.in_(['pending', 'searching', 'price_found'])
+            ).count()
+        except Exception:
+            pass
+    return dict(active_requests=active_requests)
 
 # =========================
 # Run App

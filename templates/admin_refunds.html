@@ -1,0 +1,148 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Refunds{% endblock %}
+{% block page_title %}Refund Requests{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-body">
+        <div class="filters">
+            <div class="filter-item">
+                <label>Status:</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="denied">Denied</option>
+                    <option value="processed">Processed</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <button class="btn btn-secondary" onclick="loadRefunds()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">Refund Requests</div>
+        <div class="card-actions">
+            <span id="refundsCount" class="text-muted">Loading...</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="refundsTable">
+                <thead>
+                    <tr>
+                        <th>Refund ID</th>
+                        <th>Booking PNR</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-undo"></i>
+            <h3>No Refund Requests</h3>
+        </div>
+        <div id="pagination" class="pagination"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+let currentPage = 1;
+
+async function loadRefunds(page = 1) {
+    try {
+        const status = document.getElementById('statusFilter').value;
+        const response = await fetch(`${API_BASE}/refunds?status=${status}&page=${page}`);
+        const data = await response.json();
+        renderRefundsTable(data.refunds);
+        renderPagination(data.current_page, data.pages);
+        document.getElementById('refundsCount').textContent = `${data.total} total refunds`;
+    } catch (error) {
+        console.error('Error loading refunds:', error);
+    }
+}
+
+function renderRefundsTable(refunds) {
+    const tbody = document.querySelector('#refundsTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (refunds.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#refundsTable').style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    document.querySelector('#refundsTable').style.display = 'table';
+    
+    tbody.innerHTML = refunds.map(refund => `
+        <tr>
+            <td><strong>${refund.refund_id}</strong></td>
+            <td>${refund.booking_pnr}</td>
+            <td>${refund.user_name}</td>
+            <td><strong>${refund.currency} ${refund.refund_amount.toFixed(2)}</strong></td>
+            <td class="text-muted" style="max-width: 200px;">${refund.reason || 'No reason provided'}</td>
+            <td><span class="badge badge-${getStatusClass(refund.status)}">${refund.status}</span></td>
+            <td class="text-muted">${refund.created_at}</td>
+            <td>
+                ${refund.status === 'pending' ? `
+                    <button class="btn btn-success btn-sm" onclick="updateRefund(${refund.refund_id}, 'approved')">Approve</button>
+                    <button class="btn btn-danger btn-sm" onclick="updateRefund(${refund.refund_id}, 'denied')">Deny</button>
+                ` : '-'}
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function updateRefund(refundId, status) {
+    try {
+        const response = await fetch(`${API_BASE}/refunds/${refundId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status})
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('Refund updated successfully');
+            loadRefunds(currentPage);
+        }
+    } catch (error) {
+        alert('Failed to update refund');
+    }
+}
+
+function renderPagination(current, total) {
+    const pagination = document.getElementById('pagination');
+    if (total <= 1) { pagination.innerHTML = ''; return; }
+    let html = `<button onclick="loadRefunds(${current - 1})" ${current === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+    for (let i = Math.max(1, current - 2); i <= Math.min(total, current + 2); i++) {
+        html += `<button onclick="loadRefunds(${i})" class="${i === current ? 'active' : ''}">${i}</button>`;
+    }
+    html += `<button onclick="loadRefunds(${current + 1})" ${current === total ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+    pagination.innerHTML = html;
+}
+
+function getStatusClass(status) {
+    return {pending: 'warning', approved: 'info', denied: 'danger', processed: 'success'}[status] || 'secondary';
+}
+
+document.getElementById('statusFilter').addEventListener('change', () => loadRefunds(1));
+document.addEventListener('DOMContentLoaded', () => loadRefunds());
+</script>
+{% endblock %}

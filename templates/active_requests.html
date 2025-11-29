@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Active Requests - Budget Buy{% endblock %}
+
+{% block head %}
+<!-- Tailwind CSS + DaisyUI -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/budget-shared.css') }}">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#0077b6',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-900">
+    <!-- Header -->
+    <div class="gradient-header text-white py-8 shadow-xl">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl font-bold text-center" style="color: #ffffff;">Active Requests</h1>
+            <p class="text-center text-sm mt-2" style="color: #cbd5e1;">Track your budget monitoring requests in real-time</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        
+        {% if requests %}
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="card bg-slate-800 shadow-xl">
+                    <div class="card-body p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">📊</div>
+                            <div>
+                                <div class="text-2xl font-bold text-white">{{ requests|length }}</div>
+                                <div class="text-xs text-slate-400">Total Requests</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-slate-800 shadow-xl">
+                    <div class="card-body p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">🔍</div>
+                            <div>
+                                <div class="text-2xl font-bold text-cyan-400">{{ requests|selectattr('status', 'equalto', 'searching')|list|length }}</div>
+                                <div class="text-xs text-slate-400">Searching</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-slate-800 shadow-xl">
+                    <div class="card-body p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">💰</div>
+                            <div>
+                                <div class="text-2xl font-bold text-green-400">{{ requests|selectattr('status', 'equalto', 'price_found')|list|length }}</div>
+                                <div class="text-xs text-slate-400">Price Found</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-slate-800 shadow-xl">
+                    <div class="card-body p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">✅</div>
+                            <div>
+                                <div class="text-2xl font-bold text-emerald-400">{{ requests|selectattr('status', 'equalto', 'booked')|list|length }}</div>
+                                <div class="text-xs text-slate-400">Booked</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests List -->
+            {% for req in requests %}
+            <div class="card bg-slate-800 shadow-xl mb-6 hover:shadow-2xl transition-shadow">
+                <div class="card-body">
+                    <!-- Header Row -->
+                    <div class="flex flex-wrap justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white mb-1">
+                                {{ req.origin }} → {{ req.destination }}
+                            </h2>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="badge badge-sm 
+                                    {% if req.status == 'searching' %}badge-info{% endif %}
+                                    {% if req.status == 'booked' %}badge-success{% endif %}
+                                    {% if req.status == 'cancelled' %}badge-error{% endif %}
+                                    {% if req.status == 'pending' %}badge-ghost{% endif %}
+                                    {% if req.status == 'price_found' %}badge-warning{% endif %}">
+                                    {{ req.status|replace('_', ' ')|title }}
+                                </span>
+                                <span class="badge badge-sm {% if req.mode == 'auto_book' %}badge-primary{% else %}badge-warning{% endif %}">
+                                    {{ 'Auto-Book' if req.mode == 'auto_book' else 'Alert Only' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            {% if req.status not in ['booked', 'cancelled'] %}
+                            <button class="btn btn-error btn-sm" onclick="cancelRequest({{ req.request_id }})">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Cancel
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Details Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Flight Details -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-cyan-400 uppercase mb-3">Flight Details</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Departure:</span>
+                                    <span class="text-white font-medium">{{ req.departure_date.strftime('%b %d, %Y') if req.departure_date else 'Not set' }}</span>
+                                </div>
+                                {% if req.return_date %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Return:</span>
+                                    <span class="text-white font-medium">{{ req.return_date.strftime('%b %d, %Y') }}</span>
+                                </div>
+                                {% endif %}
+                                {% if req.trip_duration_weeks %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Duration:</span>
+                                    <span class="text-white font-medium">{{ req.trip_duration_weeks }} week{% if req.trip_duration_weeks != 1 %}s{% endif %}</span>
+                                </div>
+                                {% endif %}
+                                {% if req.preferred_airline %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Airline:</span>
+                                    <span class="text-white font-medium">{{ req.preferred_airline }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-cyan-400 uppercase mb-3">Preferences</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Non-stop:</span>
+                                    <span class="text-white font-medium">{{ 'Yes' if req.non_stop_only else 'No' }}</span>
+                                </div>
+                                {% if req.max_stops is not none %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Max Stops:</span>
+                                    <span class="text-white font-medium">{{ req.max_stops }}</span>
+                                </div>
+                                {% endif %}
+                                {% if req.preferred_time %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Time:</span>
+                                    <span class="text-white font-medium">{{ req.preferred_time|title }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Budget & Status -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-cyan-400 uppercase mb-3">Budget & Status</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Budget Range:</span>
+                                    <span class="text-cyan-400 font-bold">${{ req.min_budget }} - ${{ req.max_budget }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Created:</span>
+                                    <span class="text-white font-medium">{{ req.created_at.strftime('%b %d, %I:%M %p') }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Last Check:</span>
+                                    <span class="text-white font-medium">{{ req.last_checked_at.strftime('%b %d, %I:%M %p') if req.last_checked_at else 'Not yet' }}</span>
+                                </div>
+                                {% if req.found_price %}
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Found Price:</span>
+                                    <span class="text-green-400 font-bold">${{ req.found_price }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar (for searching status) -->
+                    {% if req.status == 'searching' %}
+                    <div class="mt-4">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Searching for flights...</span>
+                            <span>Auto-refresh in progress</span>
+                        </div>
+                        <progress class="progress progress-info w-full"></progress>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="card bg-slate-800 shadow-2xl">
+                <div class="card-body text-center py-16">
+                    <div class="text-6xl mb-4 opacity-20">📭</div>
+                    <h3 class="text-2xl font-bold text-white mb-2">No Active Requests</h3>
+                    <p class="text-slate-400 mb-6">Start tracking flight prices by creating a budget request</p>
+                    <a href="/budget-buy" class="btn btn-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Create Budget Request
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    location.reload();
+}, 30000);
+
+// Cancel request function
+async function cancelRequest(requestId) {
+    if (!confirm('Are you sure you want to cancel this request?')) return;
+    
+    try {
+        const response = await fetch(`/budget-buy/cancel/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Failed to cancel request');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to cancel request');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% block title %}Payment Methods - Skyvela{% endblock %}
+{% block content %}
+<div class="min-h-screen" style="background-color: #f8fafc;">
+    <!-- Hero Section -->
+    <div class="py-12" style="background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Payment Methods</h1>
+            <p class="text-xl text-white/90">Safe, secure, and convenient payment options</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-12 max-w-5xl">
+        <!-- Overview -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <h2 class="text-3xl font-bold mb-4" style="color: #0077b6;">Secure Payment Processing</h2>
+            <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                At Skyvela, your security is our top priority. We use industry-leading encryption and secure 
+                payment gateways to protect your financial information. All transactions are processed through 
+                PCI-DSS compliant systems.
+            </p>
+            <div class="flex items-center gap-3 mt-4">
+                <svg class="w-6 h-6" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <span class="font-semibold text-gray-700">256-bit SSL Encryption | PCI-DSS Certified | Fraud Protection</span>
+            </div>
+        </div>
+
+        <!-- Accepted Cards -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">Accepted Credit & Debit Cards</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Visa -->
+                <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-16 h-12 rounded flex items-center justify-center" style="background: #1434CB;">
+                            <span class="text-white font-bold text-xl">VISA</span>
+                        </div>
+                        <h4 class="font-bold text-lg" style="color: #03045e;">Visa</h4>
+                    </div>
+                    <ul class="text-gray-700 text-sm space-y-1">
+                        <li>• Visa Credit Cards</li>
+                        <li>• Visa Debit Cards</li>
+                        <li>• Visa Electron</li>
+                    </ul>
+                </div>
+
+                <!-- Mastercard -->
+                <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-16 h-12 rounded flex items-center justify-center" style="background: #EB001B;">
+                            <span class="text-white font-bold text-lg">MC</span>
+                        </div>
+                        <h4 class="font-bold text-lg" style="color: #03045e;">Mastercard</h4>
+                    </div>
+                    <ul class="text-gray-700 text-sm space-y-1">
+                        <li>• Mastercard Credit</li>
+                        <li>• Mastercard Debit</li>
+                        <li>• Maestro</li>
+                    </ul>
+                </div>
+
+                <!-- American Express -->
+                <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-16 h-12 rounded flex items-center justify-center" style="background: #006FCF;">
+                            <span class="text-white font-bold text-lg">AMEX</span>
+                        </div>
+                        <h4 class="font-bold text-lg" style="color: #03045e;">American Express</h4>
+                    </div>
+                    <ul class="text-gray-700 text-sm space-y-1">
+                        <li>• Personal Cards</li>
+                        <li>• Business Cards</li>
+                        <li>• Corporate Cards</li>
+                    </ul>
+                </div>
+
+                <!-- Discover -->
+                <div class="p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-16 h-12 rounded flex items-center justify-center" style="background: #FF6000;">
+                            <span class="text-white font-bold text-sm">DISCOVER</span>
+                        </div>
+                        <h4 class="font-bold text-lg" style="color: #03045e;">Discover</h4>
+                    </div>
+                    <ul class="text-gray-700 text-sm space-y-1">
+                        <li>• Discover Cards</li>
+                        <li>• Diners Club</li>
+                        <li>• JCB Cards</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Features -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-6" style="color: #0077b6;">Payment Features & Benefits</h3>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center p-6 rounded-lg" style="background: #f0f9ff;">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #48cae4, #90e0ef);">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-bold mb-2" style="color: #03045e;">Secure Checkout</h4>
+                    <p class="text-gray-700 text-sm">All payments encrypted with 256-bit SSL security</p>
+                </div>
+
+                <div class="text-center p-6 rounded-lg" style="background: #f0f9ff;">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #48cae4, #90e0ef);">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-bold mb-2" style="color: #03045e;">Save Your Cards</h4>
+                    <p class="text-gray-700 text-sm">Securely save payment methods for faster checkout</p>
+                </div>
+
+                <div class="text-center p-6 rounded-lg" style="background: #f0f9ff;">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #48cae4, #90e0ef);">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-bold mb-2" style="color: #03045e;">Instant Confirmation</h4>
+                    <p class="text-gray-700 text-sm">Receive booking confirmation immediately after payment</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- How Payment Works -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">How Payment Works</h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">1</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Select Your Flight</h4>
+                        <p class="text-gray-700">Choose your preferred flight and proceed to booking</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">2</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Enter Passenger Details</h4>
+                        <p class="text-gray-700">Fill in traveler information and select seats</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">3</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Review & Pay</h4>
+                        <p class="text-gray-700">Review your booking summary and total price</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">4</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Enter Payment Information</h4>
+                        <p class="text-gray-700">Provide card details (number, expiry, CVV, billing address)</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">5</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Secure Processing</h4>
+                        <p class="text-gray-700">Payment is encrypted and securely processed</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <span class="font-bold text-2xl" style="color: #0077b6;">6</span>
+                    <div>
+                        <h4 class="font-semibold mb-1" style="color: #023e8a;">Get Confirmation</h4>
+                        <p class="text-gray-700">Instant email confirmation with booking reference and e-tickets</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Information -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Important Payment Information</h3>
+            
+            <div class="space-y-4">
+                <div class="p-4 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Currency</h4>
+                    <p class="text-gray-700">All prices are displayed in USD. Your card issuer may apply currency conversion fees for international cards.</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Payment Timing</h4>
+                    <p class="text-gray-700">Full payment is required at the time of booking. Your card will be charged immediately upon confirmation.</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Card Verification</h4>
+                    <p class="text-gray-700">For security, we may require additional verification (CVV, 3D Secure, billing address match).</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Billing Descriptor</h4>
+                    <p class="text-gray-700">Your card statement will show "SKYVELA - FLIGHT BOOKING" along with your booking reference.</p>
+                </div>
+
+                <div class="p-4 rounded-lg" style="background: #f0f9ff; border-left: 4px solid #0077b6;">
+                    <h4 class="font-semibold mb-2" style="color: #023e8a;">Failed Payments</h4>
+                    <p class="text-gray-700">If payment fails, check your card details and available credit. Contact your bank if issues persist.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refunds & Charges -->
+        <div class="bg-white rounded-xl shadow-md p-8 mb-6">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Refunds & Additional Charges</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-bold mb-3" style="color: #023e8a;">Refund Processing</h4>
+                    <ul class="text-gray-700 space-y-2 text-sm">
+                        <li>• Refunds processed to original payment method</li>
+                        <li>• Typically takes 7-20 business days</li>
+                        <li>• Refund amount may differ due to cancellation fees</li>
+                        <li>• Email notification when refund is processed</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-3" style="color: #023e8a;">Additional Charges</h4>
+                    <ul class="text-gray-700 space-y-2 text-sm">
+                        <li>• Seat selection fees (optional)</li>
+                        <li>• Baggage fees (airline-specific)</li>
+                        <li>• Change/cancellation fees (if applicable)</li>
+                        <li>• Travel insurance (optional)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+            <h3 class="text-2xl font-bold mb-4" style="color: #0077b6;">Your Security Matters</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-semibold mb-3 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        We Never Store Full Card Details
+                    </h4>
+                    <p class="text-gray-700 text-sm">Card information is tokenized and encrypted. We only store the last 4 digits for your reference.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-3 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        PCI-DSS Compliance
+                    </h4>
+                    <p class="text-gray-700 text-sm">We meet the highest standards for payment security set by major card brands.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-3 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Fraud Detection
+                    </h4>
+                    <p class="text-gray-700 text-sm">Advanced fraud detection systems monitor all transactions for suspicious activity.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-3 flex items-center gap-2" style="color: #023e8a;">
+                        <svg class="w-5 h-5" style="color: #48cae4;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        24/7 Support
+                    </h4>
+                    <p class="text-gray-700 text-sm">Questions about payments? Our support team is available around the clock.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

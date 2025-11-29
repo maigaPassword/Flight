@@ -1,0 +1,130 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Users Manager{% endblock %}
+{% block page_title %}Users Manager{% endblock %}
+
+{% block content %}
+<!-- Users Table -->
+<div class="content-card">
+    <div class="card-header">
+        <div class="card-title">All Users</div>
+        <div class="card-actions">
+            <span id="usersCount" class="text-muted">Loading...</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Total Spent</th>
+                        <th>Bookings</th>
+                        <th>Saved Cards</th>
+                        <th>Admin</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-users"></i>
+            <h3>No Users Found</h3>
+            <p>Registered users will appear here</p>
+        </div>
+        
+        <div id="pagination" class="pagination"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API_BASE = '/admin/api';
+let currentPage = 1;
+
+async function loadUsers(page = 1) {
+    try {
+        const response = await fetch(`${API_BASE}/users?page=${page}`);
+        const data = await response.json();
+        
+        renderUsersTable(data.users);
+        renderPagination(data.current_page, data.pages);
+        
+        document.getElementById('usersCount').textContent = `${data.total} total users`;
+        currentPage = page;
+        
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+function renderUsersTable(users) {
+    const tbody = document.querySelector('#usersTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (users.length === 0) {
+        emptyState.style.display = 'block';
+        document.querySelector('#usersTable').style.display = 'none';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    document.querySelector('#usersTable').style.display = 'table';
+    
+    tbody.innerHTML = users.map(user => `
+        <tr>
+            <td><strong>${user.user_id}</strong></td>
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td><strong>$${user.total_spent.toLocaleString()}</strong></td>
+            <td>${user.bookings_count}</td>
+            <td>${user.saved_cards}</td>
+            <td>${user.is_admin ? '<span class="badge badge-primary">Admin</span>' : '<span class="badge badge-secondary">User</span>'}</td>
+            <td class="text-muted">${user.created_at}</td>
+        </tr>
+    `).join('');
+}
+
+function renderPagination(current, total) {
+    const pagination = document.getElementById('pagination');
+    
+    if (total <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    html += `<button onclick="loadUsers(${current - 1})" ${current === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+    
+    const start = Math.max(1, current - 2);
+    const end = Math.min(total, current + 2);
+    
+    if (start > 1) {
+        html += `<button onclick="loadUsers(1)">1</button>`;
+        if (start > 2) html += `<span>...</span>`;
+    }
+    
+    for (let i = start; i <= end; i++) {
+        html += `<button onclick="loadUsers(${i})" class="${i === current ? 'active' : ''}">${i}</button>`;
+    }
+    
+    if (end < total) {
+        if (end < total - 1) html += `<span>...</span>`;
+        html += `<button onclick="loadUsers(${total})">${total}</button>`;
+    }
+    
+    html += `<button onclick="loadUsers(${current + 1})" ${current === total ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+    
+    pagination.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', () => loadUsers());
+</script>
+{% endblock %}
