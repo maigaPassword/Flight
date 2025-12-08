@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Traveler Reviews - Skyvela{% endblock %}
+{% block content %}
+<div class="reviews-page" style="max-width: 1100px; margin: 2rem auto; padding: 1.5rem;">
+    <h1 class="page-title" style="font-size: 2rem; margin-bottom: 1rem;">Traveler Reviews</h1>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, msg in messages %}
+            <div class="flash flash-{{ 'error' if category == 'error' else category }}">
+              {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="reviews-grid" style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; align-items: flex-start;">
+        <!-- Form -->
+        <section class="review-form-card" style="background: #ffffff; border-radius: 16px; padding: 1.5rem 1.75rem; box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);">
+            <h2 style="font-size: 1.25rem; margin-bottom: 0.75rem;">Share your experience</h2>
+            <p style="margin-bottom: 1.5rem; color: #64748b; font-size: 0.95rem;">We'd love to hear how Skyvela worked for your trip.</p>
+            <form method="POST" action="{{ url_for('reviews') }}" class="review-form">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="name" style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:0.25rem;">Name (optional)</label>
+                    <input type="text" id="name" name="name" placeholder="Your name" style="width:100%; padding:0.65rem 0.75rem; border-radius:0.5rem; border:1px solid #cbd5f5; font-size:0.95rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="rating" style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:0.25rem;">Rating</label>
+                    <select id="rating" name="rating" style="width:100%; padding:0.65rem 0.75rem; border-radius:0.5rem; border:1px solid #cbd5f5; font-size:0.95rem;">
+                        {% for r in range(5, 0, -1) %}
+                            <option value="{{ r }}">{{ r }} ★</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="comment" style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:0.25rem;">Review</label>
+                    <textarea id="comment" name="comment" rows="4" placeholder="Tell us about your booking, savings, and experience..." style="width:100%; padding:0.75rem 0.8rem; border-radius:0.75rem; border:1px solid #cbd5f5; font-size:0.95rem; resize:vertical;"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary" style="display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.7rem 1.4rem; border-radius:999px; border:none; background:linear-gradient(135deg,#0077b6,#00b4d8); color:white; font-weight:600; font-size:0.95rem; cursor:pointer;">
+                    Submit review
+                </button>
+            </form>
+        </section>
+
+        <!-- List -->
+        <section class="reviews-list-card" style="background: #0f172a; border-radius: 16px; padding: 1.5rem 1.75rem; color: white; min-height: 260px;">
+            <h2 style="font-size: 1.15rem; margin-bottom: 0.5rem;">What travelers are saying</h2>
+            <p style="margin-bottom: 1.25rem; font-size:0.9rem; color:#e2e8f0;">Recent reviews from people using Skyvela to book flights.</p>
+
+            {% if reviews %}
+                <div class="reviews-scroll" style="max-height: 360px; overflow-y: auto; padding-right: 0.5rem; display:flex; flex-direction:column; gap:0.9rem;">
+                    {% for r in reviews %}
+                        <article class="review-item" style="background: rgba(15,23,42,0.85); border-radius: 12px; padding: 0.9rem 1rem; border:1px solid rgba(148,163,184,0.35);">
+                            <header style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; margin-bottom:0.4rem;">
+                                <div>
+                                    <div style="font-weight:600; font-size:0.95rem;">{{ r.name or 'Anonymous' }}</div>
+                                    {% if r.created_at %}
+                                        <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.1rem;">
+                                            {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at.__class__.__name__ == 'datetime' else r.created_at }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div style="white-space:nowrap; font-size:0.9rem;">
+                                    {% set rating = r.rating or 0 %}
+                                    {% for _ in range(rating) %}★{% endfor %}
+                                    {% for _ in range(5 - rating) %}☆{% endfor %}
+                                </div>
+                            </header>
+                            <p style="font-size:0.9rem; line-height:1.5; color:#e5e7eb;">{{ r.comment }}</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="font-size:0.9rem; color:#cbd5f5; margin-top:0.5rem;">No reviews yet. Be the first to share your experience!</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

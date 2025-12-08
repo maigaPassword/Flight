@@ -37,6 +37,7 @@ from models import (
     Payment,
     seed_airlines_airports,
 )
+from mongo_client import get_reviews_collection
 
 # =========================
 # Country Code Mapping
@@ -683,6 +684,55 @@ def jinja_date_compact(iso_str: str) -> str:
         return f"{dt.strftime('%a').lower()}, {dt.day}, {dt.year}"
     except Exception:
         return ''
+
+
+# =========================
+# Reviews Page (MongoDB)
+# =========================
+@app.route('/reviews', methods=['GET', 'POST'])
+def reviews():
+    """Public reviews page backed by MongoDB."""
+    coll = get_reviews_collection()
+
+    if request.method == 'POST':
+        name = (request.form.get('name') or 'Anonymous').strip()
+        rating = request.form.get('rating') or '5'
+        comment = (request.form.get('comment') or '').strip()
+
+        # Validate rating
+        try:
+            rating_int = int(rating)
+        except ValueError:
+            rating_int = 5
+        rating_int = max(1, min(5, rating_int))
+
+        if not comment:
+            flash('Please enter a comment for your review.', 'error')
+        else:
+            try:
+                doc = {
+                    'name': name or 'Anonymous',
+                    'rating': rating_int,
+                    'comment': comment,
+                    'created_at': datetime.utcnow(),
+                }
+                coll.insert_one(doc)
+                flash('Thank you for your review!', 'success')
+                return redirect(url_for('reviews'))
+            except Exception as e:
+                print(f"❌ Mongo insert error: {e}")
+                flash('Could not save your review. Please try again.', 'error')
+
+    # GET or POST with validation error
+    try:
+        cursor = coll.find().sort('created_at', -1).limit(50)
+        reviews_list = list(cursor)
+    except Exception as e:
+        print(f"❌ Mongo fetch error: {e}")
+        reviews_list = []
+        flash('Could not load reviews at this time.', 'error')
+
+    return render_template('reviews.html', reviews=reviews_list)
     
 @app.route('/flight_information')
 def flight_information():
@@ -2912,6 +2962,8 @@ def inject_active_requests():
         except Exception:
             pass
     return dict(active_requests=active_requests)
+
+
 
 # =========================
 # Run App
